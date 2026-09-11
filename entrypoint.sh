@@ -1,0 +1,50 @@
+#!/bin/sh
+# One container, one design node, one engine process per library it joins
+# (the engine runs one node per library; see DECISIONS.md, 3).
+#
+#   NODE_NAME   this node's name, e.g. restaurant-1
+#   LIBRARIES   lib:syncport:dhtport:uiport[;lib:...]   the libraries it joins
+#   BOOTSTRAP   lib=host:dhtport[;lib=...]              the first member of each library's DHT
+#   PEERS       lib=host:syncport[;lib=...]             a member to sync with once at start
+#   PIPELINES   lib[;lib]                               libraries whose pipelines this node serves
+#
+# Each library lives in /data/<lib>; the first start runs `unidatum init`.
+set -eu
+: "${NODE_NAME:?NODE_NAME is required}"
+: "${LIBRARIES:?LIBRARIES is required}"
+lookup() { # lookup "$MAP" key -> value or ""
+  echo "$1" | tr ';' '\n' | while IFS='=' read -r k v; do [ "$k" = "$2" ] && echo "$v"; done | head -1
+}
+pids=""
+for entry in $(echo "$LIBRARIES" | tr ';' ' '); do
+  lib=$(echo "$entry" | cut -d: -f1); sync=$(echo "$entry" | cut -d: -f2); dht=$(echo "$entry" | cut -d: -f3); ui=$(echo "$entry" | cut -d: -f4)
+  dir="/data/$lib"; mkdir -p "$dir"; cd "$dir"
+  if [ ! -d .p2pfs ]; then
+    unidatum init --library "$lib" --node-name "$NODE_NAME" >/dev/null
+    echo "$NODE_NAME: initialised $lib in $dir"
+  fi
+  boot=$(lookup "${BOOTSTRAP:-}" "$lib")
+  set -- ui --port "$sync" --dht-port "$dht" --ui-port "$ui" --bind "" --no-mdns --sql --sync-every 15
+  [ -n "$boot" ] && set -- "$@" --bootstrap "$boot"
+  unidatum "$@" 2>&1 | sed "s/^/[$lib] /" &
+  pids="$pids $!"
+  echo "$NODE_NAME: $lib serving on $sync (api $ui)${boot:+, bootstrap $boot}"
+done
+# Make the first member of each library a known peer, so syncing starts now.
+sleep 4
+for entry in $(echo "$LIBRARIES" | tr ';' ' '); do
+  lib=$(echo "$entry" | cut -d: -f1)
+  peer=$(lookup "${PEERS:-}" "$lib")
+  [ -z "$peer" ] && continue
+  cd "/data/$lib"
+  n=0; until unidatum sync "$peer" >/dev/null 2>&1 || [ $n -ge 20 ]; do n=$((n+1)); sleep 3; done
+  echo "$NODE_NAME: $lib synced with $peer ($n retries)"
+done
+# Serve this library's pipelines (the publish jobs), if asked.
+for lib in $(echo "${PIPELINES:-}" | tr ';' ' '); do
+  cd "/data/$lib"
+  unidatum pipeline serve --every "${PIPELINE_EVERY:-30s}" 2>&1 | sed "s/^/[$lib pipelines] /" &
+  pids="$pids $!"
+  echo "$NODE_NAME: serving pipelines of $lib"
+done
+wait

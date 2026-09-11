@@ -1,76 +1,102 @@
-# Draft from the MVP sheet of "Kitchen to courier: a chain and a platform on one shared library". Edit freely; the sheet is the intent.
+# Kitchen to courier, the MVP on one machine. One container per design
+# node; a node that joins two libraries runs two engine processes (see
+# DECISIONS.md). Libraries: chain-ops (the chain's own), platform-eu (the
+# platform's own), chain-platform-shared (where the two companies meet).
+#
+# Ports inside every container: first library 47800/47801 (sync/DHT),
+# API 7480; second library 47810/47811, API 7481. Host ports below (17480 and up, clear of any node already on the machine).
+x-node: &node
+  build:
+    context: .
+    args: { UNIDATUM_VERSION: "${UNIDATUM_VERSION}" }
+  image: unidatum:${UNIDATUM_VERSION}
+  networks: [demo]
+  restart: unless-stopped
+
 services:
-  restaurant-node-back-off-1:
-    image: unidatum:${UNIDATUM_VERSION}
-    command: sh -c "unidatum init --library chain-ops --node-name restaurant-node-back-off-1 || true; unidatum serve --port 7480 --no-mdns --sql --dht-port ${DHT_PORT}"
-    volumes: ["restaurant-node-back-off-1-data:/data"]
-    ports: ["7481:7480"]
-    networks: [demo]
-  restaurant-node-back-off-2:
-    image: unidatum:${UNIDATUM_VERSION}
-    command: sh -c "unidatum init --library chain-ops --node-name restaurant-node-back-off-2 || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
-    volumes: ["restaurant-node-back-off-2-data:/data"]
-    ports: ["7581:7480"]
-    networks: [demo]
-  restaurant-node-back-off-3:
-    image: unidatum:${UNIDATUM_VERSION}
-    command: sh -c "unidatum init --library chain-ops --node-name restaurant-node-back-off-3 || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
-    volumes: ["restaurant-node-back-off-3-data:/data"]
-    ports: ["7681:7480"]
-    networks: [demo]
-  regional-hub-1:
-    image: unidatum:${UNIDATUM_VERSION}
-    command: sh -c "unidatum init --library platform-eu --node-name regional-hub-1 || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
-    volumes: ["regional-hub-1-data:/data"]
-    ports: ["7482:7480"]
-    networks: [demo]
-  regional-hub-2:
-    image: unidatum:${UNIDATUM_VERSION}
-    command: sh -c "unidatum init --library platform-eu --node-name regional-hub-2 || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
-    volumes: ["regional-hub-2-data:/data"]
-    ports: ["7582:7480"]
-    networks: [demo]
-  chain-head-office-node:
-    image: unidatum:${UNIDATUM_VERSION}
-    command: sh -c "unidatum init --library chain-ops --node-name chain-head-office-node || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
-    volumes: ["chain-head-office-node-data:/data"]
-    ports: ["7483:7480"]
-    networks: [demo]
-  platform-analytics-node:
-    image: unidatum:${UNIDATUM_VERSION}
-    command: sh -c "unidatum init --library platform-eu --node-name platform-analytics-node || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
-    volumes: ["platform-analytics-node-data:/data"]
-    ports: ["7484:7480"]
-    networks: [demo]
-  sqld:
-    image: unidatum:${UNIDATUM_VERSION}
-    command: unidatum sql-serve --pg-port 5433 --flight-port 47820
-    depends_on: [restaurant-node-back-off-1]
-    ports: ["5433:5433"]
-    networks: [demo]
-  metabase:
-    image: metabase/metabase
-    ports: ["3000:3000"]
-    networks: [demo]
-  kitchen-display-sim:
-    build: ./sims/kitchen-display
-    depends_on: [restaurant-node-back-off-1]
-    networks: [demo]
-  courier-and-customer-app-sim:
-    build: ./sims/courier-and-customer-app
-    depends_on: [restaurant-node-back-off-1]
-    networks: [demo]
-  seed:
-    build: ./seed
-    depends_on: [restaurant-node-back-off-1]
-    networks: [demo]
+  # The chain: three restaurants and its head office, on chain-ops and the shared library.
+  restaurant-1:
+    <<: *node
+    environment:
+      NODE_NAME: restaurant-1
+      LIBRARIES: "chain-ops:47800:47801:7480;chain-platform-shared:47810:47811:7481"
+      BOOTSTRAP: "chain-platform-shared=hub-1:47811"
+      PEERS: "chain-platform-shared=hub-1:47810"
+      PIPELINES: "chain-platform-shared"
+    volumes: ["restaurant-1-data:/data"]
+    ports: ["17480:7480", "17481:7481"]
+  restaurant-2:
+    <<: *node
+    environment:
+      NODE_NAME: restaurant-2
+      LIBRARIES: "chain-ops:47800:47801:7480;chain-platform-shared:47810:47811:7481"
+      BOOTSTRAP: "chain-ops=restaurant-1:47801;chain-platform-shared=hub-1:47811"
+      PEERS: "chain-ops=restaurant-1:47800;chain-platform-shared=hub-1:47810"
+      PIPELINES: "chain-platform-shared"
+    volumes: ["restaurant-2-data:/data"]
+    ports: ["17490:7480", "17491:7481"]
+    depends_on: [restaurant-1]
+  restaurant-3:
+    <<: *node
+    environment:
+      NODE_NAME: restaurant-3
+      LIBRARIES: "chain-ops:47800:47801:7480;chain-platform-shared:47810:47811:7481"
+      BOOTSTRAP: "chain-ops=restaurant-1:47801;chain-platform-shared=hub-1:47811"
+      PEERS: "chain-ops=restaurant-1:47800;chain-platform-shared=hub-1:47810"
+      PIPELINES: "chain-platform-shared"
+    volumes: ["restaurant-3-data:/data"]
+    ports: ["17500:7480", "17501:7481"]
+    depends_on: [restaurant-1]
+  head-office:
+    <<: *node
+    environment:
+      NODE_NAME: head-office
+      LIBRARIES: "chain-ops:47800:47801:7480;chain-platform-shared:47810:47811:7481"
+      BOOTSTRAP: "chain-ops=restaurant-1:47801;chain-platform-shared=hub-1:47811"
+      PEERS: "chain-ops=restaurant-1:47800;chain-platform-shared=hub-1:47810"
+      PIPELINES: "chain-ops"
+    volumes: ["head-office-data:/data"]
+    ports: ["17510:7480", "17511:7481"]
+    depends_on: [restaurant-1]
+
+  # The platform: two regional hubs and its analytics node, on platform-eu and the shared library.
+  hub-1:
+    <<: *node
+    environment:
+      NODE_NAME: hub-1
+      LIBRARIES: "platform-eu:47800:47801:7480;chain-platform-shared:47810:47811:7481"
+    volumes: ["hub-1-data:/data"]
+    ports: ["17520:7480", "17521:7481"]
+  hub-2:
+    <<: *node
+    environment:
+      NODE_NAME: hub-2
+      LIBRARIES: "platform-eu:47800:47801:7480;chain-platform-shared:47810:47811:7481"
+      BOOTSTRAP: "platform-eu=hub-1:47801;chain-platform-shared=hub-1:47811"
+      PEERS: "platform-eu=hub-1:47800;chain-platform-shared=hub-1:47810"
+    volumes: ["hub-2-data:/data"]
+    ports: ["17530:7480", "17531:7481"]
+    depends_on: [hub-1]
+  analytics:
+    <<: *node
+    environment:
+      NODE_NAME: analytics
+      LIBRARIES: "platform-eu:47800:47801:7480;chain-platform-shared:47810:47811:7481"
+      BOOTSTRAP: "platform-eu=hub-1:47801;chain-platform-shared=hub-1:47811"
+      PEERS: "platform-eu=hub-1:47800;chain-platform-shared=hub-1:47810"
+      PIPELINES: "platform-eu;chain-platform-shared"
+    volumes: ["analytics-data:/data"]
+    ports: ["17540:7480", "17541:7481"]
+    depends_on: [hub-1]
+
 volumes:
-  restaurant-node-back-off-1-data: {}
-  restaurant-node-back-off-2-data: {}
-  restaurant-node-back-off-3-data: {}
-  regional-hub-1-data: {}
-  regional-hub-2-data: {}
-  chain-head-office-node-data: {}
-  platform-analytics-node-data: {}
+  restaurant-1-data: {}
+  restaurant-2-data: {}
+  restaurant-3-data: {}
+  head-office-data: {}
+  hub-1-data: {}
+  hub-2-data: {}
+  analytics-data: {}
+
 networks:
   demo: {}
