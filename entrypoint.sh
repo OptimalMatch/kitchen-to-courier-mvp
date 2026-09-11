@@ -25,7 +25,9 @@ for entry in $(echo "$LIBRARIES" | tr ';' ' '); do
     echo "$NODE_NAME: initialised $lib in $dir"
   fi
   boot=$(lookup "${BOOTSTRAP:-}" "$lib")
-  set -- ui --port "$sync" --dht-port "$dht" --ui-port "$ui" --bind "" --no-mdns --sql --sync-every 15
+  # --seed-open: serve blob bytes to any peer of the library, not only peers this node
+  # has synced with; on one private network every container is a member (DECISIONS.md, 10).
+  set -- ui --port "$sync" --dht-port "$dht" --ui-port "$ui" --bind "" --no-mdns --sql --sync-every 15 --seed-open
   [ -n "$boot" ] && set -- "$@" --bootstrap "$boot"
   unidatum "$@" 2>&1 | sed -u "s/^/[$lib] /" &
   pids="$pids $!"
@@ -52,7 +54,10 @@ fi
 # Serve this library's pipelines (the publish jobs), if asked.
 for lib in $(echo "${PIPELINES:-}" | tr ';' ' '); do
   cd "/data/$lib"
-  unidatum pipeline serve --every "${PIPELINE_EVERY:-30s}" 2>&1 | sed -u "s/^/[$lib pipelines] /" &
+  # A pass reads up to PIPELINE_BATCH documents. Keep it above any one landing of a
+  # table another pipeline reads by a timestamp cursor: rows landed in one pass
+  # share the stamp, and a cursor that stops inside such a group skips the rest.
+  unidatum pipeline serve --every "${PIPELINE_EVERY:-30s}" --batch "${PIPELINE_BATCH:-2000}" 2>&1 | sed -u "s/^/[$lib pipelines] /" &
   pids="$pids $!"
   echo "$NODE_NAME: serving pipelines of $lib"
 done

@@ -41,12 +41,12 @@ live orders placed, twenty-one checks passing (`checks/run.mjs`).
 | what the sheet asked | target | measured |
 | --- | --- | --- |
 | a live order, placed to delivered | | 56 s: accepted 11 s after placing, ready 16 s later, dispatched 4 s after that, collected in 3 s, delivered 22 s on |
-| a menu price change live on the platform, signed | 5 minutes | 31 s |
-| orders delivered inside the promised time | 95% | 98.3% of 1,009 |
+| a menu price change live on the platform, signed | 5 minutes | 41 s |
+| orders delivered inside the promised time | 95% | 98.3% of 1,003 |
 | week close to the chain paid | 9 days | at most 7 days from delivery to the statement row |
-| settlement lines the chain disputes | the 2% the seed plants | 27 found (10, 6, 11 across the restaurants), including the six live orders delivered before the kitchen wrote its till record |
+| settlement lines the chain disputes | the 2% the seed plants | 18 found (4, 7 and 7 across the restaurants), the 18 planted, none without a till record |
 | signed publishes verified on the other side | every commit | hub-1 and the head office merged every op, none rejected |
-| the four dashboard queries | rows | 24, 48, 3 and 2 rows |
+| the four dashboard queries | rows | 24, 48 and 3 rows, and the orders in flight as they happen |
 
 ![One live order from the logs](docs/results/order.webp)
 
@@ -58,7 +58,7 @@ placement across the seven nodes, and the pipeline drawn in motion.
 
 Metabase over the PostgreSQL wires: prep time by restaurant and delivery
 time by hub from the analytics node, settlement against sales from the
-head office, orders in flight from hub-1.
+head office, orders in flight from hub-1. The settlement question also counts lines with no till record, a platform order the chain never rang up; the in-flight panel is a trailing view of the shared orders (GAPS.md, 15).
 
 ![The dashboards](docs/results/metabase.webp)
 

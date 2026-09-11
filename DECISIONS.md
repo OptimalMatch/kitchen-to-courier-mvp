@@ -41,3 +41,14 @@ starting. These are the answers this build runs on, and why.
    fraud hold, the refund gate, the price approval, the stock-out queue
    and the disputed lines run as rules or by hand in the demo, and
    `DEMO.md` shows them as the slides they would be.
+9. **Pipeline passes read up to 2,000 documents** (`PIPELINE_BATCH`),
+   above any one landing of the settlement, because the reconciliation's
+   timestamp cursor skips the rest of a group of rows that share a stamp
+   (`GAPS.md`, 13).
+10. **Every node seeds to any peer** (`--seed-open`). A node serves blob
+    bytes only to peers it knows, and a peer is known by having synced
+    with it; the head office synced with restaurant-1 and so could never
+    fetch a till member that restaurant-2 wrote. On one private network
+    every container is a member of its library, so seeding is open. A
+    real deployment registers its peers (invites, or a sync with each)
+    and keeps seeding closed.

@@ -75,3 +75,24 @@ and what this build did about it. The kit's prompt asked for this file.
     0.75)` in JavaScript; a third of the orders differed by a cent. The
     build sheet says which fields each side sets, not how each side
     rounds; a real settlement agreement would.
+13. **A timestamp cursor skips ties.** The reconciliation reads the
+    `settlements` table by its `settled_at` cursor. Every row a settlement
+    pass lands carries the same `settled_at`, so a reconcile pass that
+    stops partway through such a group moves its cursor to the group's
+    stamp and the rest of the group is never read: the first manual pass
+    of 500 rows over a landing of 988 left about half the planted
+    mismatches unfound. The daemon's batch is now 2,000, above any one
+    landing in this demo, and `DECISIONS.md` says so; a real deployment
+    would give the settlement a row-unique cursor column.
+14. **A node seeds only to peers it knows.** Blob bytes are served to
+    peers a node has synced with; the head office synced with
+    restaurant-1 alone and could never fetch a till member restaurant-2
+    wrote ("refusing to seed to unknown peer"). On one private network
+    every node runs with `--seed-open` (`DECISIONS.md`, 10).
+15. **SQL over a hot collection trails the document API.** `find` and
+    `count` resolve the latest version of every document at once;
+    `SELECT ... FROM platform_orders` reads the collection's members as
+    the SQL view last saw them, so an order the document API already
+    shows delivered can still read as in flight over the wire for a
+    while. The checks take the in-flight count from the document API;
+    the dashboard's panel is a trailing view and says so.
