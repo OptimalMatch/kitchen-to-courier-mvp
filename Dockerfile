@@ -15,7 +15,8 @@ RUN mkdir -p /opt/unidatum \
  && ln -s /opt/unidatum/unidatum-kafka /usr/local/bin/unidatum-kafka \
  && curl -fsSL "$DUCKDB_URL" -o /tmp/duckdb.zip \
  && unzip -q /tmp/duckdb.zip -d /usr/local/bin && rm /tmp/duckdb.zip && chmod +x /usr/local/bin/duckdb \
- && unidatum version && duckdb --version
+ && unidatum version && duckdb --version \
+ && duckdb -c "INSTALL spatial;" && ls /root/.duckdb/extensions/*/*/spatial.duckdb_extension
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 WORKDIR /data

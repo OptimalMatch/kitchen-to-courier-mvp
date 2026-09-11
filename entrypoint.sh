@@ -7,6 +7,7 @@
 #   BOOTSTRAP   lib=host:dhtport[;lib=...]              the first member of each library's DHT
 #   PEERS       lib=host:syncport[;lib=...]             a member to sync with once at start
 #   PIPELINES   lib[;lib]                               libraries whose pipelines this node serves
+#   SQLD        lib:pgport                              serve the PostgreSQL wire for one library (SQLD_USER, SQLD_PASSWORD)
 #
 # Each library lives in /data/<lib>; the first start runs `unidatum init`.
 set -eu
@@ -40,6 +41,14 @@ for entry in $(echo "$LIBRARIES" | tr ';' ' '); do
   n=0; until unidatum sync "$peer" >/dev/null 2>&1 || [ $n -ge 20 ]; do n=$((n+1)); sleep 3; done
   echo "$NODE_NAME: $lib synced with $peer ($n retries)"
 done
+# Serve the SQL wire for the dashboards from one library, if asked: SQLD=lib:pgport
+if [ -n "${SQLD:-}" ]; then
+  lib=$(echo "$SQLD" | cut -d: -f1); pg=$(echo "$SQLD" | cut -d: -f2)
+  cd "/data/$lib"
+  unidatum sql-serve --bind 0.0.0.0 --pg-port "$pg" --flight-port 0 --mysql-port 0 --oracle-port 0 --tds-port 0 --user "${SQLD_USER:-demo}" --password "${SQLD_PASSWORD:?SQLD_PASSWORD is required for the SQL wire}" 2>&1 | sed "s/^/[$lib sqld] /" &
+  pids="$pids $!"
+  echo "$NODE_NAME: SQL wire for $lib on $pg"
+fi
 # Serve this library's pipelines (the publish jobs), if asked.
 for lib in $(echo "${PIPELINES:-}" | tr ';' ' '); do
   cd "/data/$lib"

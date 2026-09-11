@@ -22,7 +22,6 @@ services:
       LIBRARIES: "chain-ops:47800:47801:7480;chain-platform-shared:47810:47811:7481"
       BOOTSTRAP: "chain-platform-shared=hub-1:47811"
       PEERS: "chain-platform-shared=hub-1:47810"
-      PIPELINES: "chain-platform-shared"
     volumes: ["restaurant-1-data:/data"]
     ports: ["17480:7480", "17481:7481"]
   restaurant-2:
@@ -32,7 +31,6 @@ services:
       LIBRARIES: "chain-ops:47800:47801:7480;chain-platform-shared:47810:47811:7481"
       BOOTSTRAP: "chain-ops=restaurant-1:47801;chain-platform-shared=hub-1:47811"
       PEERS: "chain-ops=restaurant-1:47800;chain-platform-shared=hub-1:47810"
-      PIPELINES: "chain-platform-shared"
     volumes: ["restaurant-2-data:/data"]
     ports: ["17490:7480", "17491:7481"]
     depends_on: [restaurant-1]
@@ -43,7 +41,6 @@ services:
       LIBRARIES: "chain-ops:47800:47801:7480;chain-platform-shared:47810:47811:7481"
       BOOTSTRAP: "chain-ops=restaurant-1:47801;chain-platform-shared=hub-1:47811"
       PEERS: "chain-ops=restaurant-1:47800;chain-platform-shared=hub-1:47810"
-      PIPELINES: "chain-platform-shared"
     volumes: ["restaurant-3-data:/data"]
     ports: ["17500:7480", "17501:7481"]
     depends_on: [restaurant-1]
@@ -54,9 +51,12 @@ services:
       LIBRARIES: "chain-ops:47800:47801:7480;chain-platform-shared:47810:47811:7481"
       BOOTSTRAP: "chain-ops=restaurant-1:47801;chain-platform-shared=hub-1:47811"
       PEERS: "chain-ops=restaurant-1:47800;chain-platform-shared=hub-1:47810"
-      PIPELINES: "chain-ops"
+      PIPELINES: "chain-ops;chain-platform-shared"
+      SQLD: "chain-ops:5433"
+      SQLD_USER: "${SQLD_USER:-demo}"
+      SQLD_PASSWORD: "${SQLD_PASSWORD}"
     volumes: ["head-office-data:/data"]
-    ports: ["17510:7480", "17511:7481"]
+    ports: ["17510:7480", "17511:7481", "15434:5433"]
     depends_on: [restaurant-1]
 
   # The platform: two regional hubs and its analytics node, on platform-eu and the shared library.
@@ -85,9 +85,62 @@ services:
       BOOTSTRAP: "platform-eu=hub-1:47801;chain-platform-shared=hub-1:47811"
       PEERS: "platform-eu=hub-1:47800;chain-platform-shared=hub-1:47810"
       PIPELINES: "platform-eu;chain-platform-shared"
+      SQLD: "platform-eu:5433"
+      SQLD_USER: "${SQLD_USER:-demo}"
+      SQLD_PASSWORD: "${SQLD_PASSWORD}"
     volumes: ["analytics-data:/data"]
-    ports: ["17540:7480", "17541:7481"]
+    ports: ["17540:7480", "17541:7481", "15433:5433"]
     depends_on: [hub-1]
+
+  # The tools: seed, register the pipelines, run the checks (docker compose run --rm tools node seed/seed.mjs).
+  tools:
+    image: node:22-alpine
+    profiles: [tools]
+    working_dir: /app
+    volumes: ["./lib:/app/lib:ro", "./seed:/app/seed:ro", "./pipelines:/app/pipelines:ro", "./sims:/app/sims:ro", "./checks:/app/checks:ro", "./bin:/app/bin:ro"]
+    networks: [demo]
+    depends_on: [restaurant-1, hub-1, head-office, analytics]
+
+  # The simulators: the apps of the design, each making the build sheet's calls (docker compose --profile sims up -d).
+  kitchen-display-1: &sim
+    image: node:22-alpine
+    profiles: [sims]
+    working_dir: /app
+    volumes: ["./lib:/app/lib:ro", "./sims:/app/sims:ro"]
+    networks: [demo]
+    restart: unless-stopped
+    environment: { RESTAURANT: r1 }
+    command: node sims/kitchen-display.mjs
+  kitchen-display-2:
+    <<: *sim
+    environment: { RESTAURANT: r2 }
+  kitchen-display-3:
+    <<: *sim
+    environment: { RESTAURANT: r3 }
+  dispatch-1:
+    <<: *sim
+    environment: { HUB: hub-1 }
+    command: node sims/hub-dispatch.mjs
+  dispatch-2:
+    <<: *sim
+    environment: { HUB: hub-2 }
+    command: node sims/hub-dispatch.mjs
+  courier-app-1:
+    <<: *sim
+    environment: { HUB: hub-1 }
+    command: node sims/courier-app.mjs
+  courier-app-2:
+    <<: *sim
+    environment: { HUB: hub-2 }
+    command: node sims/courier-app.mjs
+
+  # The dashboards: Metabase over the PostgreSQL wire of the analytics node and the head office.
+  metabase:
+    image: metabase/metabase:latest
+    ports: ["13100:3000"]
+    networks: [demo]
+    depends_on: [analytics, head-office]
+    volumes: ["metabase-data:/metabase.db"]
 
 volumes:
   restaurant-1-data: {}
@@ -97,6 +150,7 @@ volumes:
   hub-1-data: {}
   hub-2-data: {}
   analytics-data: {}
+  metabase-data: {}
 
 networks:
   demo: {}
