@@ -65,7 +65,7 @@ run this was written from).
 | 1. Week closes | the analytics node | nothing: the `settlement` pipeline runs every 30 s over delivered orders (weekly in production, see GAPS.md 7) | |
 | 2. Compute the settlement | the analytics node, a rule | | `settlements` on the analytics node's shared library, http://127.0.0.1:17541: gross, the 25% fee, net, week, customer and courier hashed |
 | 3. Publish the statement, signed | the analytics node, a rule | | the same table on the head office's shared node, http://127.0.0.1:17511 |
-| 4. Reconcile by order | the head office node, a rule | the `reconcile` pipeline joins the statement to the chain's own `sales` and keeps the lines that differ | `settlement_mismatches` on http://127.0.0.1:17510: the seed plants about 2% at 100 cents each; a line with no `sales_net_cents` is an order the till has no record of |
+| 4. Reconcile by order | the head office node, a rule | the `reconcile` pipeline joins the statement to the chain's own `sales` and keeps the lines that differ | `settlement_mismatches` on http://127.0.0.1:17510: the seed plants about 2% at 100 cents each, the till over the statement; a line with no `sales_net_cents` is an order the till has no record of |
 | 5. Disputed lines | proposed for an agent | a slide | |
 | 6. Dispute over the limit | proposed for an agent | a slide: "a line over 50, or a repeat: a person decides" | |
 | 7. Pay the chain | the platform's finance, a rule | not built: the bank file is outside the design | |

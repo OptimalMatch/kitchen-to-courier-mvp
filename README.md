@@ -58,7 +58,7 @@ placement across the seven nodes, and the pipeline drawn in motion.
 
 Metabase over the PostgreSQL wires: prep time by restaurant and delivery
 time by hub from the analytics node, settlement against sales from the
-head office, orders in flight from hub-1. The settlement question also counts lines with no till record, a platform order the chain never rang up; the in-flight panel is a trailing view of the shared orders (GAPS.md, 15).
+head office, orders in flight from hub-1. The settlement question shows the disputed lines, how many have no till record (a platform order the chain never rang up), and the cents the till shows over the statement; the in-flight panel is a trailing view of the shared orders (GAPS.md, 15).
 
 ![The dashboards](docs/results/metabase.webp)
 
