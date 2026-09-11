@@ -1,0 +1,14 @@
+# The engine is proprietary: the release archive and its binaries never go into git.
+*.tar.gz
+*.zip
+/unidatum
+/unidatum-sqld
+/unidatum-kafka
+/unidatum-xfer
+libunidatum*
+/engine/
+
+.env
+node_modules/
+/data/
+*.log

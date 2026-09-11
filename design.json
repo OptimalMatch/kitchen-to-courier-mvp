@@ -1,0 +1,3243 @@
+{
+  "title": "Kitchen to courier: a chain and a platform on one shared library",
+  "nodes": [
+    {
+      "id": "rnode",
+      "type": "node",
+      "label": "Restaurant node, back office",
+      "notes": "The chain's node from the restaurant-chain design. Joins the shared library as well as the chain's own",
+      "x": 80,
+      "y": 258,
+      "count": 600,
+      "h": 170,
+      "facts": {
+        "where": "back office, one per restaurant"
+      },
+      "href": "/en/blog/architecture-restaurant-chain",
+      "detail": {
+        "title": "Inside a restaurant node",
+        "nodes": [
+          {
+            "id": "lib-chain",
+            "type": "library",
+            "label": "chain-ops",
+            "notes": "The chain's own library",
+            "x": 80,
+            "y": 60,
+            "h": 119,
+            "facts": {
+              "name": "chain-ops",
+              "discovery": "LAN beacon, private DHT",
+              "role": "member"
+            }
+          },
+          {
+            "id": "lib-shared",
+            "type": "library",
+            "label": "chain-platform-shared",
+            "notes": "",
+            "x": 420,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "name": "chain-platform-shared",
+              "discovery": "invite link via rendezvous",
+              "role": "member"
+            }
+          },
+          {
+            "id": "box",
+            "type": "host",
+            "label": "Back-office box",
+            "notes": "",
+            "x": 80,
+            "y": 239,
+            "h": 98,
+            "facts": {
+              "machine": "4 cores, 16 GB",
+              "storage": "1 TB SSD",
+              "os": "Linux"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "x1",
+            "from": "@sorders",
+            "to": "lib-shared",
+            "label": "syncs through",
+            "style": "solid",
+            "kind": "sync"
+          },
+          {
+            "id": "x2",
+            "from": "@shared",
+            "to": "lib-shared",
+            "label": "joined by invite",
+            "style": "solid",
+            "kind": "member"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "rmenu",
+      "type": "collection",
+      "label": "menu",
+      "notes": "Prices from head office, availability from the kitchen; the source of what is published",
+      "x": 80,
+      "y": 60,
+      "count": 600,
+      "h": 138,
+      "facts": {
+        "documents": "1 per item",
+        "merge": "field-level"
+      },
+      "detail": {
+        "title": "menu: one document per item",
+        "nodes": [
+          {
+            "id": "item_id",
+            "type": "field",
+            "label": "item_id",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "kind": "string",
+              "setby": "head office",
+              "index": "unique"
+            }
+          },
+          {
+            "id": "name",
+            "type": "field",
+            "label": "name",
+            "notes": "",
+            "x": 420,
+            "y": 60,
+            "h": 83,
+            "facts": {
+              "kind": "string",
+              "setby": "head office"
+            }
+          },
+          {
+            "id": "price_cents",
+            "type": "field",
+            "label": "price_cents",
+            "notes": "",
+            "x": 760,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "kind": "integer",
+              "setby": "head office",
+              "merge": "last writer"
+            }
+          },
+          {
+            "id": "available",
+            "type": "field",
+            "label": "available",
+            "notes": "",
+            "x": 80,
+            "y": 218,
+            "h": 98,
+            "facts": {
+              "kind": "boolean",
+              "setby": "kitchen",
+              "merge": "per field"
+            }
+          },
+          {
+            "id": "prep_notes",
+            "type": "field",
+            "label": "prep_notes",
+            "notes": "Stays in the chain; dropped before publishing",
+            "x": 420,
+            "y": 218,
+            "h": 119,
+            "facts": {
+              "kind": "string",
+              "setby": "kitchen"
+            }
+          },
+          {
+            "id": "supplier",
+            "type": "field",
+            "label": "supplier",
+            "notes": "Stays in the chain",
+            "x": 760,
+            "y": 218,
+            "h": 104,
+            "facts": {
+              "kind": "string",
+              "setby": "head office"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "x1",
+            "from": "price_cents",
+            "to": "@smenu",
+            "label": "published",
+            "style": "solid",
+            "kind": "publish"
+          },
+          {
+            "id": "x2",
+            "from": "available",
+            "to": "@smenu",
+            "label": "published",
+            "style": "solid",
+            "kind": "publish"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "rapp",
+      "type": "app",
+      "label": "Kitchen display",
+      "notes": "Shows platform orders beside till orders; one tap marks accepted, then ready",
+      "x": 80,
+      "y": 488,
+      "count": 600,
+      "h": 138,
+      "facts": {
+        "language": "Kotlin",
+        "api": "find, put"
+      },
+      "detail": {
+        "title": "What the kitchen display calls",
+        "nodes": [
+          {
+            "id": "c1",
+            "type": "call",
+            "label": "New platform orders",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "api": "/api/doc/find",
+              "query": "{status: \"created\", restaurant_id}",
+              "flow": "2"
+            }
+          },
+          {
+            "id": "c2",
+            "type": "call",
+            "label": "Accept",
+            "notes": "",
+            "x": 420,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "api": "/api/doc/put",
+              "query": "$set status: accepted, accepted_at",
+              "flow": "3"
+            }
+          },
+          {
+            "id": "c3",
+            "type": "call",
+            "label": "Ready",
+            "notes": "",
+            "x": 760,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "api": "/api/doc/put",
+              "query": "$set status: ready, ready_at",
+              "flow": "3"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "k1",
+            "from": "c1",
+            "to": "c2",
+            "label": "",
+            "style": "solid"
+          },
+          {
+            "id": "k2",
+            "from": "c2",
+            "to": "c3",
+            "label": "",
+            "style": "solid"
+          },
+          {
+            "id": "x1",
+            "from": "c1",
+            "to": "@sorders",
+            "label": "find",
+            "style": "solid",
+            "kind": "read"
+          },
+          {
+            "id": "x2",
+            "from": "c3",
+            "to": "@sorders",
+            "label": "put",
+            "style": "solid"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "shared",
+      "type": "fleet",
+      "label": "Shared library",
+      "notes": "Nodes from both organisations. Invite links through the rendezvous; every commit signed by whoever made it",
+      "x": 520,
+      "y": 258,
+      "h": 153,
+      "facts": {
+        "nodes": "both parties'",
+        "library": "one name, invite links"
+      },
+      "detail": {
+        "title": "Inside the shared library",
+        "nodes": [
+          {
+            "id": "lib",
+            "type": "library",
+            "label": "chain-platform-shared",
+            "notes": "One name both organisations' nodes join",
+            "x": 420,
+            "y": 60,
+            "h": 149,
+            "facts": {
+              "name": "chain-platform-shared",
+              "discovery": "invite link via rendezvous",
+              "role": "both sides member"
+            }
+          },
+          {
+            "id": "m3",
+            "type": "node",
+            "label": "Head office nodes",
+            "notes": "One from each side, for publishing and reconciling",
+            "x": 760,
+            "y": 269,
+            "count": 2,
+            "h": 104,
+            "facts": {
+              "where": "chain HQ, platform HQ"
+            }
+          },
+          {
+            "id": "k1",
+            "type": "key",
+            "label": "Chain's key",
+            "notes": "",
+            "x": 80,
+            "y": 269,
+            "h": 113,
+            "facts": {
+              "holder": "chain nodes",
+              "signs": "menu_published, kitchen fields",
+              "verifiedby": "platform nodes"
+            }
+          },
+          {
+            "id": "k2",
+            "type": "key",
+            "label": "Platform's key",
+            "notes": "",
+            "x": 420,
+            "y": 269,
+            "h": 98,
+            "facts": {
+              "holder": "platform nodes",
+              "signs": "orders, settlements",
+              "verifiedby": "chain nodes"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "j3",
+            "from": "m3",
+            "to": "lib",
+            "label": "",
+            "style": "solid",
+            "kind": "member"
+          },
+          {
+            "id": "x1",
+            "from": "@rnode",
+            "to": "lib",
+            "label": "member",
+            "style": "solid",
+            "kind": "member"
+          },
+          {
+            "id": "x2",
+            "from": "@hub",
+            "to": "lib",
+            "label": "member",
+            "style": "solid",
+            "kind": "member"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "sorders",
+      "type": "collection",
+      "label": "platform_orders",
+      "notes": "One document per platform order. The platform creates it; the kitchen sets accepted and ready; the courier sets collected. Field-level merge",
+      "x": 520,
+      "y": 488,
+      "owner": "g-platform",
+      "h": 153,
+      "facts": {
+        "documents": "1 per order",
+        "merge": "field-level CRDT"
+      },
+      "detail": {
+        "title": "platform_orders: one document per order",
+        "nodes": [
+          {
+            "id": "order_id",
+            "type": "field",
+            "label": "order_id",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "kind": "string",
+              "setby": "platform",
+              "index": "unique"
+            }
+          },
+          {
+            "id": "restaurant_id",
+            "type": "field",
+            "label": "restaurant_id",
+            "notes": "",
+            "x": 420,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "kind": "string",
+              "setby": "platform",
+              "index": "by restaurant"
+            }
+          },
+          {
+            "id": "items",
+            "type": "field",
+            "label": "items",
+            "notes": "",
+            "x": 420,
+            "y": 218,
+            "h": 83,
+            "facts": {
+              "kind": "array of item, qty, price",
+              "setby": "platform"
+            }
+          },
+          {
+            "id": "status",
+            "type": "field",
+            "label": "status",
+            "notes": "created, accepted, ready, collected, delivered",
+            "x": 80,
+            "y": 376,
+            "h": 134,
+            "facts": {
+              "kind": "enum",
+              "setby": "platform, kitchen, courier",
+              "merge": "last writer, per field"
+            }
+          },
+          {
+            "id": "accepted_at",
+            "type": "field",
+            "label": "accepted_at",
+            "notes": "",
+            "x": 760,
+            "y": 60,
+            "h": 83,
+            "facts": {
+              "kind": "timestamp",
+              "setby": "kitchen"
+            }
+          },
+          {
+            "id": "ready_at",
+            "type": "field",
+            "label": "ready_at",
+            "notes": "",
+            "x": 760,
+            "y": 218,
+            "h": 98,
+            "facts": {
+              "kind": "timestamp",
+              "setby": "kitchen",
+              "index": "by ready_at"
+            }
+          },
+          {
+            "id": "courier_id",
+            "type": "field",
+            "label": "courier_id",
+            "notes": "",
+            "x": 80,
+            "y": 218,
+            "h": 83,
+            "facts": {
+              "kind": "string",
+              "setby": "platform dispatch"
+            }
+          },
+          {
+            "id": "collected_at",
+            "type": "field",
+            "label": "collected_at",
+            "notes": "",
+            "x": 1440,
+            "y": 60,
+            "h": 83,
+            "facts": {
+              "kind": "timestamp",
+              "setby": "courier"
+            }
+          },
+          {
+            "id": "delivered_at",
+            "type": "field",
+            "label": "delivered_at",
+            "notes": "",
+            "x": 1440,
+            "y": 218,
+            "h": 83,
+            "facts": {
+              "kind": "timestamp",
+              "setby": "courier"
+            }
+          },
+          {
+            "id": "chainkey",
+            "type": "key",
+            "label": "Chain's key",
+            "notes": "",
+            "x": 80,
+            "y": 600,
+            "h": 98,
+            "facts": {
+              "holder": "restaurant node",
+              "signs": "accepted_at, ready_at",
+              "verifiedby": "platform hub"
+            }
+          },
+          {
+            "id": "platformkey",
+            "type": "key",
+            "label": "Platform's key",
+            "notes": "",
+            "x": 420,
+            "y": 600,
+            "h": 98,
+            "facts": {
+              "holder": "regional hub",
+              "signs": "order, status, courier_id",
+              "verifiedby": "restaurant node"
+            }
+          },
+          {
+            "id": "courierkey",
+            "type": "key",
+            "label": "Courier app's key",
+            "notes": "",
+            "x": 760,
+            "y": 600,
+            "h": 98,
+            "facts": {
+              "holder": "courier app",
+              "signs": "collected_at, delivered_at",
+              "verifiedby": "both nodes"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "x1",
+            "from": "@hub",
+            "to": "order_id",
+            "label": "creates",
+            "style": "solid"
+          },
+          {
+            "id": "x2",
+            "from": "@hub",
+            "to": "courier_id",
+            "label": "dispatch sets",
+            "style": "solid",
+            "fromSide": "left",
+            "toSide": "left",
+            "labelAt": 0.75
+          },
+          {
+            "id": "x3",
+            "from": "@rapp",
+            "to": "accepted_at",
+            "label": "one tap",
+            "style": "solid"
+          },
+          {
+            "id": "x4",
+            "from": "@rapp",
+            "to": "ready_at",
+            "label": "one tap",
+            "style": "solid"
+          },
+          {
+            "id": "x5",
+            "from": "@capp",
+            "to": "collected_at",
+            "label": "sets",
+            "style": "solid"
+          },
+          {
+            "id": "x6",
+            "from": "@capp",
+            "to": "delivered_at",
+            "label": "sets",
+            "style": "solid"
+          },
+          {
+            "id": "x7",
+            "from": "ready_at",
+            "to": "@couriers",
+            "label": "triggers dispatch",
+            "style": "solid",
+            "kind": "read"
+          },
+          {
+            "id": "x8",
+            "from": "@rnode",
+            "to": "status",
+            "label": "syncs",
+            "style": "solid",
+            "kind": "sync"
+          },
+          {
+            "id": "x9",
+            "from": "status",
+            "to": "@bi1",
+            "label": "timelines",
+            "style": "solid",
+            "kind": "read",
+            "fromSide": "right",
+            "toSide": "bottom"
+          }
+        ],
+        "groups": [
+          {
+            "id": "g-fields",
+            "label": "Fields, under whoever sets them",
+            "x": 40,
+            "y": 16,
+            "w": 1720,
+            "h": 524,
+            "color": "violet"
+          },
+          {
+            "id": "g-keys",
+            "label": "Who signs what",
+            "x": 40,
+            "y": 556,
+            "w": 1040,
+            "h": 172,
+            "color": "rose"
+          }
+        ]
+      }
+    },
+    {
+      "id": "smenu",
+      "type": "table",
+      "label": "menu_published",
+      "notes": "Published by the chain every few minutes as a signed commit; the platform verifies and reads it",
+      "x": 520,
+      "y": 60,
+      "owner": "g-chain",
+      "h": 138,
+      "facts": {
+        "rows": "1 per item and restaurant",
+        "cadence": "every few minutes"
+      },
+      "detail": {
+        "title": "menu_published: the columns the platform sees",
+        "nodes": [
+          {
+            "id": "restaurant_id",
+            "type": "field",
+            "label": "restaurant_id",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "kind": "string",
+              "setby": "chain",
+              "index": "partition"
+            }
+          },
+          {
+            "id": "item_id",
+            "type": "field",
+            "label": "item_id",
+            "notes": "",
+            "x": 420,
+            "y": 60,
+            "h": 83,
+            "facts": {
+              "kind": "string",
+              "setby": "chain"
+            }
+          },
+          {
+            "id": "name",
+            "type": "field",
+            "label": "name",
+            "notes": "",
+            "x": 760,
+            "y": 60,
+            "h": 83,
+            "facts": {
+              "kind": "string",
+              "setby": "chain"
+            }
+          },
+          {
+            "id": "price_cents",
+            "type": "field",
+            "label": "price_cents",
+            "notes": "",
+            "x": 80,
+            "y": 218,
+            "h": 83,
+            "facts": {
+              "kind": "integer",
+              "setby": "chain"
+            }
+          },
+          {
+            "id": "available",
+            "type": "field",
+            "label": "available",
+            "notes": "",
+            "x": 420,
+            "y": 218,
+            "h": 83,
+            "facts": {
+              "kind": "boolean",
+              "setby": "chain"
+            }
+          },
+          {
+            "id": "published_at",
+            "type": "field",
+            "label": "published_at",
+            "notes": "",
+            "x": 760,
+            "y": 218,
+            "h": 83,
+            "facts": {
+              "kind": "timestamp",
+              "setby": "publish job"
+            }
+          },
+          {
+            "id": "when",
+            "type": "schedule",
+            "label": "Every 5 minutes",
+            "notes": "",
+            "x": 80,
+            "y": 361,
+            "h": 98,
+            "facts": {
+              "cadence": "every 5 minutes",
+              "trigger": "menu commit",
+              "window": "changed rows"
+            }
+          },
+          {
+            "id": "key",
+            "type": "key",
+            "label": "Chain's key",
+            "notes": "",
+            "x": 420,
+            "y": 361,
+            "h": 98,
+            "facts": {
+              "holder": "restaurant node",
+              "signs": "each commit",
+              "verifiedby": "hub before pricing"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "x1",
+            "from": "@rmenu",
+            "to": "price_cents",
+            "label": "publishes",
+            "style": "solid",
+            "kind": "publish"
+          },
+          {
+            "id": "x2",
+            "from": "available",
+            "to": "@hub",
+            "label": "read before pricing",
+            "style": "solid",
+            "kind": "read"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "ssettle",
+      "type": "table",
+      "label": "settlements",
+      "notes": "Published weekly by the platform, signed; the chain verifies and reconciles",
+      "x": 520,
+      "y": 701,
+      "owner": "g-platform",
+      "h": 138,
+      "facts": {
+        "rows": "1 per order",
+        "cadence": "weekly"
+      },
+      "detail": {
+        "title": "settlements: one row per order, weekly",
+        "nodes": [
+          {
+            "id": "order_id",
+            "type": "field",
+            "label": "order_id",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "kind": "string",
+              "setby": "platform",
+              "index": "unique"
+            }
+          },
+          {
+            "id": "restaurant_id",
+            "type": "field",
+            "label": "restaurant_id",
+            "notes": "",
+            "x": 420,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "kind": "string",
+              "setby": "platform",
+              "index": "partition"
+            }
+          },
+          {
+            "id": "gross_cents",
+            "type": "field",
+            "label": "gross_cents",
+            "notes": "",
+            "x": 760,
+            "y": 60,
+            "h": 83,
+            "facts": {
+              "kind": "integer",
+              "setby": "platform"
+            }
+          },
+          {
+            "id": "fee_cents",
+            "type": "field",
+            "label": "platform_fee_cents",
+            "notes": "",
+            "x": 80,
+            "y": 218,
+            "h": 83,
+            "facts": {
+              "kind": "integer",
+              "setby": "platform"
+            }
+          },
+          {
+            "id": "net_cents",
+            "type": "field",
+            "label": "net_cents",
+            "notes": "",
+            "x": 420,
+            "y": 218,
+            "h": 83,
+            "facts": {
+              "kind": "integer",
+              "setby": "platform"
+            }
+          },
+          {
+            "id": "week",
+            "type": "field",
+            "label": "week",
+            "notes": "",
+            "x": 760,
+            "y": 218,
+            "h": 98,
+            "facts": {
+              "kind": "date",
+              "setby": "platform",
+              "index": "partition"
+            }
+          },
+          {
+            "id": "settled_at",
+            "type": "field",
+            "label": "settled_at",
+            "notes": "",
+            "x": 80,
+            "y": 376,
+            "h": 83,
+            "facts": {
+              "kind": "timestamp",
+              "setby": "settlement job"
+            }
+          },
+          {
+            "id": "when",
+            "type": "schedule",
+            "label": "Weekly, Monday 02:00",
+            "notes": "",
+            "x": 420,
+            "y": 376,
+            "h": 98,
+            "facts": {
+              "cadence": "weekly",
+              "window": "previous week",
+              "trigger": "clock"
+            }
+          },
+          {
+            "id": "key",
+            "type": "key",
+            "label": "Platform's key",
+            "notes": "",
+            "x": 760,
+            "y": 376,
+            "h": 98,
+            "facts": {
+              "holder": "platform analytics node",
+              "signs": "each weekly commit",
+              "verifiedby": "chain head office"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "x1",
+            "from": "@phq",
+            "to": "net_cents",
+            "label": "publishes",
+            "style": "solid",
+            "kind": "publish"
+          },
+          {
+            "id": "x2",
+            "from": "net_cents",
+            "to": "@rho",
+            "label": "reconciles",
+            "style": "solid",
+            "kind": "read"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "hub",
+      "type": "fleet",
+      "label": "Regional hub",
+      "notes": "The platform's hub from the food-delivery design. Joins the shared library as well as its own",
+      "x": 1040,
+      "y": 258,
+      "h": 138,
+      "facts": {
+        "nodes": "6 per hub",
+        "sites": "40 hubs"
+      },
+      "href": "/en/blog/architecture-food-delivery-platform",
+      "detail": {
+        "title": "Inside a regional hub",
+        "nodes": [
+          {
+            "id": "lib-platform",
+            "type": "library",
+            "label": "platform-eu",
+            "notes": "The platform's own library",
+            "x": 80,
+            "y": 60,
+            "h": 119,
+            "facts": {
+              "name": "platform-eu",
+              "discovery": "private DHT",
+              "role": "member"
+            }
+          },
+          {
+            "id": "lib-shared",
+            "type": "library",
+            "label": "chain-platform-shared",
+            "notes": "The shared library",
+            "x": 420,
+            "y": 60,
+            "h": 134,
+            "facts": {
+              "name": "chain-platform-shared",
+              "discovery": "invite link via rendezvous",
+              "role": "member"
+            }
+          },
+          {
+            "id": "hubhost",
+            "type": "host",
+            "label": "Hub machine",
+            "notes": "",
+            "x": 80,
+            "y": 254,
+            "count": 6,
+            "h": 98,
+            "facts": {
+              "machine": "8 vCPU, 64 GB",
+              "storage": "2 TB NVMe",
+              "os": "Linux amd64"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "x1",
+            "from": "@smenu",
+            "to": "lib-shared",
+            "label": "verified, read",
+            "style": "solid",
+            "kind": "read"
+          },
+          {
+            "id": "x2",
+            "from": "lib-shared",
+            "to": "@sorders",
+            "label": "creates in",
+            "style": "solid"
+          },
+          {
+            "id": "x3",
+            "from": "@shared",
+            "to": "lib-shared",
+            "label": "joined by invite",
+            "style": "solid",
+            "kind": "member"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "couriers",
+      "type": "collection",
+      "label": "couriers",
+      "notes": "Dispatch by geo query when an order document turns ready",
+      "x": 1040,
+      "y": 488,
+      "h": 123,
+      "facts": {
+        "documents": "1 per courier",
+        "indexes": "geo"
+      },
+      "detail": {
+        "title": "couriers: one document per courier",
+        "nodes": [
+          {
+            "id": "courier_id",
+            "type": "field",
+            "label": "courier_id",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "kind": "string",
+              "setby": "platform",
+              "index": "unique"
+            }
+          },
+          {
+            "id": "state",
+            "type": "field",
+            "label": "state",
+            "notes": "available, assigned, delivering, off",
+            "x": 420,
+            "y": 60,
+            "h": 119,
+            "facts": {
+              "kind": "enum",
+              "setby": "courier app, dispatch",
+              "merge": "per field"
+            }
+          },
+          {
+            "id": "location",
+            "type": "field",
+            "label": "location",
+            "notes": "",
+            "x": 760,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "kind": "geo point",
+              "setby": "courier app",
+              "index": "2dsphere"
+            }
+          },
+          {
+            "id": "current_order",
+            "type": "field",
+            "label": "current_order",
+            "notes": "",
+            "x": 80,
+            "y": 239,
+            "h": 83,
+            "facts": {
+              "kind": "order_id",
+              "setby": "dispatch"
+            }
+          },
+          {
+            "id": "updated_at",
+            "type": "field",
+            "label": "updated_at",
+            "notes": "",
+            "x": 420,
+            "y": 239,
+            "h": 83,
+            "facts": {
+              "kind": "timestamp",
+              "setby": "courier app"
+            }
+          },
+          {
+            "id": "key",
+            "type": "key",
+            "label": "Courier app's key",
+            "notes": "",
+            "x": 760,
+            "y": 239,
+            "h": 98,
+            "facts": {
+              "holder": "courier app",
+              "signs": "location, state",
+              "verifiedby": "hub"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "x1",
+            "from": "@sorders",
+            "to": "location",
+            "label": "$near query",
+            "style": "solid",
+            "kind": "read"
+          },
+          {
+            "id": "x2",
+            "from": "current_order",
+            "to": "@sorders",
+            "label": "assigned order",
+            "style": "solid",
+            "fromSide": "left",
+            "toSide": "left",
+            "labelAt": 0.6,
+            "labelFlip": true
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "capp",
+      "type": "app",
+      "label": "Courier and customer apps",
+      "notes": "Track the order document; the courier marks collected",
+      "x": 1040,
+      "y": 701,
+      "h": 108,
+      "facts": {
+        "language": "Kotlin, Swift, TypeScript"
+      },
+      "detail": {
+        "title": "What the courier and customer apps call",
+        "nodes": [
+          {
+            "id": "d1",
+            "type": "call",
+            "label": "Orders ready near me",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "api": "/api/doc/find",
+              "query": "{status: \"ready\", $near}",
+              "flow": "4"
+            }
+          },
+          {
+            "id": "d2",
+            "type": "call",
+            "label": "Collected",
+            "notes": "",
+            "x": 420,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "api": "/api/doc/put",
+              "query": "$set status: collected, collected_at",
+              "flow": "5"
+            }
+          },
+          {
+            "id": "d3",
+            "type": "call",
+            "label": "Delivered",
+            "notes": "",
+            "x": 760,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "api": "/api/doc/put",
+              "query": "$set status: delivered, delivered_at",
+              "flow": "5"
+            }
+          },
+          {
+            "id": "d4",
+            "type": "call",
+            "label": "Customer tracks the order",
+            "notes": "",
+            "x": 80,
+            "y": 233,
+            "h": 115,
+            "facts": {
+              "api": "/api/doc/get",
+              "query": "order_id",
+              "flow": "2 to 5"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "q1",
+            "from": "d1",
+            "to": "d2",
+            "label": "",
+            "style": "solid"
+          },
+          {
+            "id": "q2",
+            "from": "d2",
+            "to": "d3",
+            "label": "",
+            "style": "solid"
+          },
+          {
+            "id": "x1",
+            "from": "d1",
+            "to": "@sorders",
+            "label": "find near me",
+            "style": "solid",
+            "kind": "read"
+          },
+          {
+            "id": "x2",
+            "from": "d3",
+            "to": "@sorders",
+            "label": "put",
+            "style": "solid"
+          },
+          {
+            "id": "x3",
+            "from": "d4",
+            "to": "@sorders",
+            "label": "get",
+            "style": "solid",
+            "kind": "read"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "rho",
+      "type": "node",
+      "label": "Chain head office node",
+      "notes": "Reads settlements from the shared library and the chain's own sales; reconciles by order id",
+      "x": 80,
+      "y": 899,
+      "h": 119,
+      "detail": {
+        "title": "Inside the chain's head office node",
+        "nodes": [
+          {
+            "id": "lib-chain",
+            "type": "library",
+            "label": "chain-ops",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "name": "chain-ops",
+              "discovery": "private DHT",
+              "role": "member, holds the catalog"
+            }
+          },
+          {
+            "id": "lib-shared",
+            "type": "library",
+            "label": "chain-platform-shared",
+            "notes": "",
+            "x": 420,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "name": "chain-platform-shared",
+              "discovery": "invite link via rendezvous",
+              "role": "member"
+            }
+          },
+          {
+            "id": "box",
+            "type": "host",
+            "label": "Head office server",
+            "notes": "",
+            "x": 760,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "machine": "16 cores, 128 GB",
+              "storage": "8 TB NVMe",
+              "os": "Linux amd64"
+            }
+          },
+          {
+            "id": "sales",
+            "type": "table",
+            "label": "sales_curated",
+            "notes": "The chain's own sales, from the restaurant-chain design",
+            "x": 80,
+            "y": 412,
+            "h": 119,
+            "facts": {
+              "rows": "1 per order line",
+              "partitions": "restaurant, day"
+            }
+          },
+          {
+            "id": "recon",
+            "type": "pipeline",
+            "label": "Reconcile settlements",
+            "notes": "Joins settlements to sales_curated by order id; flags a mismatch",
+            "x": 420,
+            "y": 233,
+            "h": 119,
+            "facts": {
+              "rate": "weekly",
+              "steps": "join, compare, land"
+            }
+          },
+          {
+            "id": "mismatch",
+            "type": "table",
+            "label": "settlement_mismatches",
+            "notes": "",
+            "x": 760,
+            "y": 412,
+            "h": 83,
+            "facts": {
+              "rows": "a few per week",
+              "cadence": "weekly"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "r1",
+            "from": "sales",
+            "to": "recon",
+            "label": "own sales",
+            "style": "solid",
+            "kind": "read"
+          },
+          {
+            "id": "r2",
+            "from": "recon",
+            "to": "mismatch",
+            "label": "lands",
+            "style": "solid"
+          },
+          {
+            "id": "x1",
+            "from": "@ssettle",
+            "to": "recon",
+            "label": "weekly table",
+            "style": "solid",
+            "kind": "read"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "phq",
+      "type": "node",
+      "label": "Platform analytics node",
+      "notes": "Reads menus and order timelines from the shared library into the platform's own analytics; publishes the week's settlement",
+      "x": 1040,
+      "y": 899,
+      "h": 134,
+      "detail": {
+        "title": "Inside the platform's analytics node",
+        "nodes": [
+          {
+            "id": "lib-platform",
+            "type": "library",
+            "label": "platform-eu",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "name": "platform-eu",
+              "discovery": "private DHT",
+              "role": "member, holds the catalog"
+            }
+          },
+          {
+            "id": "lib-shared",
+            "type": "library",
+            "label": "chain-platform-shared",
+            "notes": "",
+            "x": 420,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "name": "chain-platform-shared",
+              "discovery": "invite link via rendezvous",
+              "role": "member"
+            }
+          },
+          {
+            "id": "box",
+            "type": "host",
+            "label": "Analytics server",
+            "notes": "",
+            "x": 760,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "machine": "32 cores, 256 GB",
+              "storage": "16 TB NVMe",
+              "os": "Linux amd64"
+            }
+          },
+          {
+            "id": "deliveries",
+            "type": "table",
+            "label": "deliveries_curated",
+            "notes": "From the food-delivery design; the platform's own numbers",
+            "x": 420,
+            "y": 444,
+            "h": 119,
+            "facts": {
+              "rows": "billions per month",
+              "partitions": "hub, day"
+            }
+          },
+          {
+            "id": "settle",
+            "type": "pipeline",
+            "label": "Compute the week's settlement",
+            "notes": "Sums completed orders per restaurant, applies the fee, lands the signed table",
+            "x": 760,
+            "y": 233,
+            "h": 151,
+            "facts": {
+              "rate": "weekly",
+              "steps": "filter, aggregate, land"
+            }
+          },
+          {
+            "id": "timelines",
+            "type": "pipeline",
+            "label": "Curate order timelines",
+            "notes": "Reads platform_orders from the shared library; computes prep and delivery times",
+            "x": 80,
+            "y": 233,
+            "h": 134,
+            "facts": {
+              "rate": "per minute",
+              "steps": "read, compute, land"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "a1",
+            "from": "deliveries",
+            "to": "settle",
+            "label": "completed orders",
+            "style": "solid",
+            "kind": "read"
+          },
+          {
+            "id": "a2",
+            "from": "timelines",
+            "to": "deliveries",
+            "label": "lands",
+            "style": "solid"
+          },
+          {
+            "id": "x1",
+            "from": "settle",
+            "to": "@ssettle",
+            "label": "publishes",
+            "style": "solid",
+            "kind": "publish"
+          },
+          {
+            "id": "x2",
+            "from": "@sorders",
+            "to": "timelines",
+            "label": "order timelines",
+            "style": "solid",
+            "kind": "read"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "bi1",
+      "type": "bi",
+      "label": "Reconciliation and prep-time dashboards",
+      "notes": "Both parties, each on their own nodes, over the same signed records",
+      "x": 520,
+      "y": 899,
+      "h": 155,
+      "facts": {
+        "tool": "Power BI",
+        "wire": "PostgreSQL"
+      },
+      "detail": {
+        "title": "What the dashboards ask",
+        "nodes": [
+          {
+            "id": "q1",
+            "type": "call",
+            "label": "Prep time by restaurant",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "api": "PostgreSQL wire, SQL",
+              "query": "ready_at - accepted_at, by restaurant, d",
+              "flow": "3"
+            }
+          },
+          {
+            "id": "q2",
+            "type": "call",
+            "label": "Delivery time by hub",
+            "notes": "",
+            "x": 420,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "api": "PostgreSQL wire, SQL",
+              "query": "delivered_at - ready_at, by hub, hour",
+              "flow": "5"
+            }
+          },
+          {
+            "id": "q3",
+            "type": "call",
+            "label": "Settlement vs sales",
+            "notes": "",
+            "x": 760,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "api": "PostgreSQL wire, SQL",
+              "query": "settlements join sales_curated on order_",
+              "flow": "7"
+            }
+          },
+          {
+            "id": "q4",
+            "type": "call",
+            "label": "Orders in flight now",
+            "notes": "",
+            "x": 80,
+            "y": 233,
+            "h": 113,
+            "facts": {
+              "api": "/api/doc/count",
+              "query": "{status: {$in: [created, accepted, ready",
+              "flow": "1 to 4"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "x1",
+            "from": "@sorders",
+            "to": "q1",
+            "label": "prep times",
+            "style": "solid",
+            "kind": "read"
+          },
+          {
+            "id": "x2",
+            "from": "@sorders",
+            "to": "q4",
+            "label": "count",
+            "style": "solid",
+            "kind": "read"
+          }
+        ],
+        "groups": []
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "rmenu",
+      "to": "smenu",
+      "label": "every few minutes",
+      "style": "solid",
+      "kind": "publish",
+      "detail": {
+        "title": "Publishing the menu: every few minutes, signed",
+        "nodes": [
+          {
+            "id": "when",
+            "type": "schedule",
+            "label": "Every 5 minutes",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "cadence": "every 5 minutes",
+              "trigger": "a commit on menu",
+              "window": "items changed since last run"
+            }
+          },
+          {
+            "id": "s1",
+            "type": "step",
+            "label": "Changed items only",
+            "notes": "",
+            "x": 80,
+            "y": 233,
+            "h": 98,
+            "facts": {
+              "op": "filter",
+              "expr": "price or availability changed"
+            }
+          },
+          {
+            "id": "s2",
+            "type": "step",
+            "label": "Public columns",
+            "notes": "",
+            "x": 420,
+            "y": 233,
+            "h": 98,
+            "facts": {
+              "op": "rename",
+              "expr": "item_id, name, price_cents, available"
+            }
+          },
+          {
+            "id": "s3",
+            "type": "step",
+            "label": "Drop kitchen notes",
+            "notes": "",
+            "x": 760,
+            "y": 233,
+            "h": 83,
+            "facts": {
+              "op": "mask",
+              "expr": "prep_notes, supplier"
+            }
+          },
+          {
+            "id": "s4",
+            "type": "step",
+            "label": "Land as one signed commit",
+            "notes": "",
+            "x": 1100,
+            "y": 233,
+            "h": 130,
+            "facts": {
+              "op": "land",
+              "expr": "menu_published in the shared library",
+              "lanes": "1"
+            }
+          },
+          {
+            "id": "key",
+            "type": "key",
+            "label": "Chain's key",
+            "notes": "",
+            "x": 1100,
+            "y": 60,
+            "h": 113,
+            "facts": {
+              "holder": "restaurant node",
+              "signs": "each menu_published commit",
+              "verifiedby": "platform hub before it prices"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "p0",
+            "from": "when",
+            "to": "s1",
+            "label": "runs",
+            "style": "solid"
+          },
+          {
+            "id": "p1",
+            "from": "s1",
+            "to": "s2",
+            "label": "",
+            "style": "solid"
+          },
+          {
+            "id": "p2",
+            "from": "s2",
+            "to": "s3",
+            "label": "",
+            "style": "solid"
+          },
+          {
+            "id": "p3",
+            "from": "s3",
+            "to": "s4",
+            "label": "",
+            "style": "solid"
+          },
+          {
+            "id": "p4",
+            "from": "key",
+            "to": "s4",
+            "label": "signs",
+            "style": "solid",
+            "kind": "publish"
+          },
+          {
+            "id": "x1",
+            "from": "@rmenu",
+            "to": "s1",
+            "label": "changed items",
+            "style": "solid",
+            "kind": "read"
+          },
+          {
+            "id": "x2",
+            "from": "s4",
+            "to": "@smenu",
+            "label": "one signed commit",
+            "style": "solid",
+            "kind": "publish"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "e2",
+      "from": "smenu",
+      "to": "hub",
+      "label": "verifies, reads",
+      "style": "solid",
+      "kind": "read",
+      "labelAt": 0.3
+    },
+    {
+      "id": "e3",
+      "from": "hub",
+      "to": "sorders",
+      "label": "creates",
+      "style": "solid",
+      "step": 1
+    },
+    {
+      "id": "e4",
+      "from": "sorders",
+      "to": "rnode",
+      "label": "to the kitchen",
+      "style": "solid",
+      "kind": "sync",
+      "step": 2
+    },
+    {
+      "id": "e5",
+      "from": "rapp",
+      "to": "sorders",
+      "label": "accepted, ready",
+      "style": "solid",
+      "step": 3,
+      "labelFlip": true
+    },
+    {
+      "id": "e6",
+      "from": "sorders",
+      "to": "couriers",
+      "label": "ready: dispatch",
+      "style": "solid",
+      "kind": "read",
+      "step": 4,
+      "labelFlip": true
+    },
+    {
+      "id": "e7",
+      "from": "capp",
+      "to": "sorders",
+      "label": "collected, delivered",
+      "style": "solid",
+      "step": 5
+    },
+    {
+      "id": "e8",
+      "from": "rnode",
+      "to": "shared",
+      "label": "",
+      "style": "solid",
+      "kind": "member"
+    },
+    {
+      "id": "e9",
+      "from": "hub",
+      "to": "shared",
+      "label": "",
+      "style": "solid",
+      "kind": "member"
+    },
+    {
+      "id": "e10",
+      "from": "phq",
+      "to": "ssettle",
+      "label": "weekly",
+      "style": "solid",
+      "kind": "publish",
+      "step": 6,
+      "detail": {
+        "title": "Publishing the settlement: weekly, signed",
+        "nodes": [
+          {
+            "id": "when",
+            "type": "schedule",
+            "label": "Monday 02:00",
+            "notes": "",
+            "x": 80,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "cadence": "weekly",
+              "window": "previous Monday to Sunday",
+              "trigger": "clock"
+            }
+          },
+          {
+            "id": "s1",
+            "type": "step",
+            "label": "Completed orders of the week",
+            "notes": "",
+            "x": 80,
+            "y": 218,
+            "h": 115,
+            "facts": {
+              "op": "filter",
+              "expr": "status = delivered and delivered_at in w"
+            }
+          },
+          {
+            "id": "s2",
+            "type": "step",
+            "label": "Sum per restaurant and order",
+            "notes": "",
+            "x": 420,
+            "y": 218,
+            "h": 115,
+            "facts": {
+              "op": "compute",
+              "expr": "gross, fee = gross × rate, net"
+            }
+          },
+          {
+            "id": "s3",
+            "type": "step",
+            "label": "Public columns only",
+            "notes": "",
+            "x": 760,
+            "y": 218,
+            "h": 98,
+            "facts": {
+              "op": "mask",
+              "expr": "customer_id, courier_id"
+            }
+          },
+          {
+            "id": "s4",
+            "type": "step",
+            "label": "Land as one signed commit",
+            "notes": "",
+            "x": 1100,
+            "y": 218,
+            "h": 130,
+            "facts": {
+              "op": "land",
+              "expr": "settlements in the shared library",
+              "lanes": "1"
+            }
+          },
+          {
+            "id": "key",
+            "type": "key",
+            "label": "Platform's key",
+            "notes": "",
+            "x": 1100,
+            "y": 60,
+            "h": 98,
+            "facts": {
+              "holder": "platform analytics node",
+              "signs": "the weekly commit",
+              "verifiedby": "chain head office"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "p0",
+            "from": "when",
+            "to": "s1",
+            "label": "runs",
+            "style": "solid"
+          },
+          {
+            "id": "p1",
+            "from": "s1",
+            "to": "s2",
+            "label": "",
+            "style": "solid"
+          },
+          {
+            "id": "p2",
+            "from": "s2",
+            "to": "s3",
+            "label": "",
+            "style": "solid"
+          },
+          {
+            "id": "p3",
+            "from": "s3",
+            "to": "s4",
+            "label": "",
+            "style": "solid"
+          },
+          {
+            "id": "p4",
+            "from": "key",
+            "to": "s4",
+            "label": "signs",
+            "style": "solid",
+            "kind": "publish"
+          },
+          {
+            "id": "x1",
+            "from": "@phq",
+            "to": "s1",
+            "label": "completed orders",
+            "style": "solid",
+            "kind": "read"
+          },
+          {
+            "id": "x2",
+            "from": "s4",
+            "to": "@ssettle",
+            "label": "one signed commit",
+            "style": "solid",
+            "kind": "publish"
+          }
+        ],
+        "groups": []
+      }
+    },
+    {
+      "id": "e11",
+      "from": "ssettle",
+      "to": "rho",
+      "label": "reconciles",
+      "style": "solid",
+      "kind": "read",
+      "step": 7
+    },
+    {
+      "id": "e12",
+      "from": "sorders",
+      "to": "phq",
+      "label": "order timelines",
+      "style": "solid",
+      "kind": "read",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e13",
+      "from": "sorders",
+      "to": "bi1",
+      "label": "prep, delivery times",
+      "style": "solid",
+      "kind": "read"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-chain",
+      "label": "Chain (×600 restaurants)",
+      "x": 40,
+      "y": 10,
+      "w": 360,
+      "h": 646,
+      "color": "rose"
+    },
+    {
+      "id": "g-shared",
+      "label": "Shared library",
+      "x": 480,
+      "y": 10,
+      "w": 360,
+      "h": 859,
+      "color": "green"
+    },
+    {
+      "id": "g-platform",
+      "label": "Platform",
+      "x": 960,
+      "y": 10,
+      "w": 440,
+      "h": 859,
+      "color": "sky"
+    },
+    {
+      "id": "g-hub",
+      "label": "Regional hub (×40)",
+      "x": 1000,
+      "y": 214,
+      "w": 360,
+      "h": 625,
+      "color": "violet"
+    }
+  ],
+  "legend": true,
+  "process": {
+    "title": "Order, menu and settlement across two companies",
+    "nodes": [
+      {
+        "id": "policy",
+        "type": "policy",
+        "label": "Partner agreement",
+        "notes": "One signed agreement; every gate on both sides reads it.",
+        "x": 480,
+        "y": 40,
+        "h": 180,
+        "facts": {
+          "sets": "refund limits, price bands, settlement t",
+          "ownedby": "both partner leads",
+          "version": "2026-09"
+        },
+        "on": [
+          "shared"
+        ]
+      },
+      {
+        "id": "p-order",
+        "type": "process",
+        "label": "Order to doorstep",
+        "notes": "Open it: nine steps from an order placed to delivered, across the platform, the kitchen and the courier.",
+        "x": 100,
+        "y": 300,
+        "h": 225,
+        "facts": {
+          "owner": "the platform's operations lead",
+          "cases": "1.2 million a week",
+          "cycle": "34 minutes"
+        },
+        "on": [
+          "sorders",
+          "rapp",
+          "couriers",
+          "capp",
+          "hub",
+          "rnode"
+        ],
+        "detail": {
+          "title": "Order to doorstep",
+          "nodes": [
+            {
+              "id": "ev-o1",
+              "type": "event",
+              "label": "Order placed",
+              "notes": "",
+              "x": 540,
+              "y": 40,
+              "h": 159,
+              "facts": {
+                "source": "the customer app",
+                "rate": "1.2 million a week",
+                "carries": "items, address, promised time"
+              },
+              "on": [
+                "capp",
+                "hub"
+              ]
+            },
+            {
+              "id": "st-o1",
+              "type": "stage",
+              "label": "Create the order document",
+              "notes": "One platform_orders document per order, signed by the hub.",
+              "x": 540,
+              "y": 255,
+              "h": 201,
+              "facts": {
+                "actor": "the hub",
+                "system": "the shared library",
+                "touch": "instant"
+              },
+              "on": [
+                "hub",
+                "sorders"
+              ],
+              "by": "rule"
+            },
+            {
+              "id": "gt-o1",
+              "type": "gate",
+              "label": "Fraud and address check",
+              "notes": "",
+              "x": 540,
+              "y": 512,
+              "h": 178,
+              "facts": {
+                "rule": "a new card at a new address: hold",
+                "approver": "the platform's risk desk",
+                "limit": "over 150 goes to a person"
+              },
+              "on": [
+                "hub"
+              ],
+              "by": "approved",
+              "proposed": true
+            },
+            {
+              "id": "sla-o1",
+              "type": "sla",
+              "label": "Promised time kept",
+              "notes": "Every step's time is on the order document.",
+              "x": 540,
+              "y": 746,
+              "h": 210,
+              "facts": {
+                "measure": "placed to delivered",
+                "target": "within the promise, 95% of orders",
+                "onmiss": "the hub's operations lead is told"
+              },
+              "on": [
+                "bi1"
+              ]
+            },
+            {
+              "id": "st-o2",
+              "type": "stage",
+              "label": "Accept in the kitchen",
+              "notes": "The order reaches the restaurant node by sync and shows beside till orders.",
+              "x": 980,
+              "y": 40,
+              "h": 199,
+              "facts": {
+                "actor": "the kitchen",
+                "system": "the kitchen display",
+                "touch": "20 seconds"
+              },
+              "on": [
+                "rapp",
+                "sorders",
+                "rnode"
+              ],
+              "by": "person"
+            },
+            {
+              "id": "qu-o1",
+              "type": "queue",
+              "label": "Cooking",
+              "notes": "",
+              "x": 980,
+              "y": 295,
+              "h": 163,
+              "facts": {
+                "items": "about 6 per kitchen at peak",
+                "wait": "11 minutes",
+                "workedby": "the kitchen"
+              },
+              "on": [
+                "rapp",
+                "sorders"
+              ],
+              "by": "person"
+            },
+            {
+              "id": "st-o3",
+              "type": "stage",
+              "label": "Mark ready",
+              "notes": "One tap; the ready time lands on the order document.",
+              "x": 980,
+              "y": 514,
+              "h": 184,
+              "facts": {
+                "actor": "the kitchen",
+                "system": "the kitchen display",
+                "touch": "5 seconds"
+              },
+              "on": [
+                "rapp",
+                "sorders"
+              ],
+              "by": "person"
+            },
+            {
+              "id": "role-o1",
+              "type": "role",
+              "label": "Kitchen crew",
+              "notes": "",
+              "x": 980,
+              "y": 754,
+              "h": 110,
+              "facts": {
+                "people": "4 per restaurant",
+                "system": "the kitchen display",
+                "hours": "11 to 23"
+              }
+            },
+            {
+              "id": "st-o4",
+              "type": "stage",
+              "label": "Dispatch a courier",
+              "notes": "Fires when the order document turns ready.",
+              "x": 1420,
+              "y": 40,
+              "h": 214,
+              "facts": {
+                "actor": "the hub",
+                "system": "the couriers collection, by geo query",
+                "touch": "instant"
+              },
+              "on": [
+                "couriers",
+                "sorders",
+                "hub"
+              ],
+              "by": "rule"
+            },
+            {
+              "id": "st-o5",
+              "type": "stage",
+              "label": "Collect and deliver",
+              "notes": "",
+              "x": 1420,
+              "y": 310,
+              "h": 163,
+              "facts": {
+                "actor": "the courier",
+                "system": "the courier app",
+                "touch": "14 minutes"
+              },
+              "on": [
+                "capp",
+                "sorders"
+              ],
+              "by": "person"
+            },
+            {
+              "id": "gt-o2",
+              "type": "gate",
+              "label": "Late or wrong: refund?",
+              "notes": "",
+              "x": 1420,
+              "y": 529,
+              "h": 193,
+              "facts": {
+                "rule": "20 minutes late or an item missing: refu",
+                "approver": "the support desk",
+                "limit": "over 40 goes to a person"
+              },
+              "on": [
+                "sorders",
+                "capp"
+              ],
+              "by": "approved",
+              "proposed": true
+            },
+            {
+              "id": "ev-o2",
+              "type": "event",
+              "label": "Delivered",
+              "notes": "",
+              "x": 1420,
+              "y": 778,
+              "h": 144,
+              "facts": {
+                "source": "the order document",
+                "carries": "the time at every step"
+              },
+              "on": [
+                "sorders",
+                "phq",
+                "bi1"
+              ]
+            },
+            {
+              "id": "role-o2",
+              "type": "role",
+              "label": "Couriers",
+              "notes": "",
+              "x": 1420,
+              "y": 978,
+              "h": 110,
+              "facts": {
+                "people": "about 30 per hub at peak",
+                "system": "the courier app",
+                "hours": "shifts, 10 to 24"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "o1",
+              "from": "ev-o1",
+              "to": "st-o1",
+              "label": "order placed",
+              "style": "solid",
+              "step": 1
+            },
+            {
+              "id": "o2",
+              "from": "st-o1",
+              "to": "gt-o1",
+              "label": "created",
+              "style": "solid",
+              "step": 2
+            },
+            {
+              "id": "o3",
+              "from": "gt-o1",
+              "to": "st-o2",
+              "label": "to the kitchen",
+              "style": "solid",
+              "kind": "handoff",
+              "step": 3,
+              "fromSide": "right",
+              "toSide": "left",
+              "labelAt": 0.3
+            },
+            {
+              "id": "o4",
+              "from": "st-o2",
+              "to": "qu-o1",
+              "label": "accepted",
+              "style": "solid",
+              "step": 4
+            },
+            {
+              "id": "o5",
+              "from": "qu-o1",
+              "to": "st-o3",
+              "label": "cooked",
+              "style": "solid",
+              "step": 5
+            },
+            {
+              "id": "o6",
+              "from": "st-o3",
+              "to": "st-o4",
+              "label": "ready: dispatch",
+              "style": "solid",
+              "kind": "handoff",
+              "step": 6,
+              "fromSide": "right",
+              "toSide": "left",
+              "labelAt": 0.3
+            },
+            {
+              "id": "o7",
+              "from": "st-o4",
+              "to": "st-o5",
+              "label": "assigned",
+              "style": "solid",
+              "step": 7
+            },
+            {
+              "id": "o8",
+              "from": "st-o5",
+              "to": "gt-o2",
+              "label": "delivered",
+              "style": "solid",
+              "step": 8
+            },
+            {
+              "id": "o9",
+              "from": "gt-o2",
+              "to": "ev-o2",
+              "label": "closed",
+              "style": "solid",
+              "step": 9
+            },
+            {
+              "id": "o10",
+              "from": "st-o1",
+              "to": "@sorders",
+              "label": "writes the order",
+              "style": "solid",
+              "fromSide": "right",
+              "toSide": "bottom"
+            },
+            {
+              "id": "o11",
+              "from": "st-o2",
+              "to": "@sorders",
+              "label": "writes accepted",
+              "style": "solid",
+              "fromSide": "left",
+              "toSide": "bottom",
+              "labelAt": 0.85
+            },
+            {
+              "id": "o12",
+              "from": "st-o3",
+              "to": "@sorders",
+              "label": "writes ready",
+              "style": "solid",
+              "fromSide": "left",
+              "toSide": "bottom",
+              "labelAt": 0.7
+            },
+            {
+              "id": "o13",
+              "from": "@couriers",
+              "to": "st-o4",
+              "label": "reads who is near",
+              "style": "solid",
+              "kind": "read",
+              "toSide": "top",
+              "labelAt": 0.4
+            },
+            {
+              "id": "o14",
+              "from": "st-o5",
+              "to": "@sorders",
+              "label": "writes collected, delivered",
+              "style": "solid",
+              "fromSide": "left",
+              "toSide": "bottom",
+              "labelAt": 0.6
+            },
+            {
+              "id": "o15",
+              "from": "@sorders",
+              "to": "ev-o2",
+              "label": "reads the timeline",
+              "style": "solid",
+              "kind": "read",
+              "toSide": "right",
+              "labelAt": 0.6
+            }
+          ],
+          "groups": [
+            {
+              "id": "lane-0",
+              "label": "Platform",
+              "x": 500,
+              "y": 0,
+              "w": 360,
+              "h": 1118,
+              "color": "sky"
+            },
+            {
+              "id": "lane-1",
+              "label": "Kitchen, the chain",
+              "x": 940,
+              "y": 0,
+              "w": 360,
+              "h": 1118,
+              "color": "amber"
+            },
+            {
+              "id": "lane-2",
+              "label": "Courier and support, the platform",
+              "x": 1380,
+              "y": 0,
+              "w": 360,
+              "h": 1118,
+              "color": "green"
+            }
+          ]
+        }
+      },
+      {
+        "id": "p-menu",
+        "type": "process",
+        "label": "Menu to platform",
+        "notes": "Open it: five steps from a price change to live on the platform.",
+        "x": 480,
+        "y": 300,
+        "h": 195,
+        "facts": {
+          "owner": "the chain's head of menu",
+          "cases": "about 400 changes a week",
+          "cycle": "under 5 minutes"
+        },
+        "on": [
+          "rmenu",
+          "smenu",
+          "rnode",
+          "hub",
+          "rho"
+        ],
+        "detail": {
+          "title": "Menu to platform",
+          "nodes": [
+            {
+              "id": "ev-m1",
+              "type": "event",
+              "label": "Price or item change",
+              "notes": "",
+              "x": 540,
+              "y": 40,
+              "h": 129,
+              "facts": {
+                "source": "head office",
+                "rate": "about 400 a week",
+                "carries": "item, price, availability"
+              },
+              "on": [
+                "rho",
+                "rmenu"
+              ]
+            },
+            {
+              "id": "st-m1",
+              "type": "stage",
+              "label": "Edit the menu",
+              "notes": "Prices from head office, availability from the kitchen, on one document per item.",
+              "x": 540,
+              "y": 225,
+              "h": 229,
+              "facts": {
+                "actor": "head office, or the kitchen for availabi",
+                "system": "the menu collection",
+                "touch": "2 minutes"
+              },
+              "on": [
+                "rmenu",
+                "rnode"
+              ],
+              "by": "person"
+            },
+            {
+              "id": "gt-m1",
+              "type": "gate",
+              "label": "Price change approval",
+              "notes": "",
+              "x": 540,
+              "y": 510,
+              "h": 193,
+              "facts": {
+                "rule": "more than 10% on an item: the head of me",
+                "approver": "the head of menu",
+                "limit": "a new item goes to the category lead"
+              },
+              "on": [
+                "rmenu"
+              ],
+              "by": "approved",
+              "proposed": true
+            },
+            {
+              "id": "qu-m1",
+              "type": "queue",
+              "label": "Items out of stock",
+              "notes": "An agent could predict the stock-out and pull the item before it sells out.",
+              "x": 540,
+              "y": 759,
+              "h": 199,
+              "facts": {
+                "items": "about 3 per kitchen",
+                "wait": "until the next delivery",
+                "workedby": "the kitchen"
+              },
+              "on": [
+                "rmenu",
+                "rapp"
+              ],
+              "by": "assisted",
+              "proposed": true
+            },
+            {
+              "id": "st-m2",
+              "type": "stage",
+              "label": "Publish, signed",
+              "notes": "Changed items only, public columns only, one signed commit.",
+              "x": 980,
+              "y": 40,
+              "h": 199,
+              "facts": {
+                "actor": "the restaurant node",
+                "system": "the shared library",
+                "touch": "every few minutes"
+              },
+              "on": [
+                "rnode",
+                "smenu",
+                "shared"
+              ],
+              "by": "rule"
+            },
+            {
+              "id": "sla-m1",
+              "type": "sla",
+              "label": "Change live in five minutes",
+              "notes": "",
+              "x": 980,
+              "y": 295,
+              "h": 146,
+              "facts": {
+                "measure": "edit to live",
+                "target": "5 minutes",
+                "onmiss": "the chain's IT is paged"
+              },
+              "on": [
+                "phq"
+              ]
+            },
+            {
+              "id": "st-m3",
+              "type": "stage",
+              "label": "Verify and show",
+              "notes": "The hub verifies the chain's signature and reads the rows.",
+              "x": 1420,
+              "y": 40,
+              "h": 184,
+              "facts": {
+                "actor": "the hub",
+                "system": "the platform's menu",
+                "touch": "instant"
+              },
+              "on": [
+                "hub",
+                "smenu"
+              ],
+              "by": "rule"
+            },
+            {
+              "id": "ev-m2",
+              "type": "event",
+              "label": "Live on the platform",
+              "notes": "",
+              "x": 1420,
+              "y": 280,
+              "h": 144,
+              "facts": {
+                "source": "the hub",
+                "carries": "the menu as the customer sees it"
+              },
+              "on": [
+                "hub",
+                "capp"
+              ]
+            }
+          ],
+          "edges": [
+            {
+              "id": "m1",
+              "from": "ev-m1",
+              "to": "st-m1",
+              "label": "change",
+              "style": "solid",
+              "step": 1
+            },
+            {
+              "id": "m2",
+              "from": "st-m1",
+              "to": "gt-m1",
+              "label": "edited",
+              "style": "solid",
+              "step": 2
+            },
+            {
+              "id": "m3",
+              "from": "gt-m1",
+              "to": "st-m2",
+              "label": "approved",
+              "style": "solid",
+              "kind": "handoff",
+              "step": 3,
+              "fromSide": "right",
+              "toSide": "left",
+              "labelAt": 0.3
+            },
+            {
+              "id": "m4",
+              "from": "st-m2",
+              "to": "st-m3",
+              "label": "signed commit",
+              "style": "solid",
+              "kind": "handoff",
+              "step": 4,
+              "fromSide": "right",
+              "toSide": "left",
+              "labelAt": 0.3
+            },
+            {
+              "id": "m5",
+              "from": "st-m3",
+              "to": "ev-m2",
+              "label": "verified",
+              "style": "solid",
+              "step": 5
+            },
+            {
+              "id": "m6",
+              "from": "qu-m1",
+              "to": "st-m1",
+              "label": "back in stock",
+              "style": "dashed",
+              "fromSide": "left",
+              "toSide": "left",
+              "labelFlip": true
+            },
+            {
+              "id": "m7",
+              "from": "st-m1",
+              "to": "@rmenu",
+              "label": "writes price, availability",
+              "style": "solid",
+              "fromSide": "left",
+              "toSide": "bottom",
+              "labelAt": 0.8
+            },
+            {
+              "id": "m8",
+              "from": "st-m2",
+              "to": "@smenu",
+              "label": "writes the published rows",
+              "style": "solid",
+              "fromSide": "top",
+              "toSide": "bottom"
+            },
+            {
+              "id": "m9",
+              "from": "@smenu",
+              "to": "st-m3",
+              "label": "reads, verifies the signature",
+              "style": "solid",
+              "kind": "read",
+              "toSide": "top",
+              "labelAt": 0.4
+            }
+          ],
+          "groups": [
+            {
+              "id": "lane-0",
+              "label": "Head office and kitchen, the chain",
+              "x": 500,
+              "y": 0,
+              "w": 360,
+              "h": 988,
+              "color": "amber"
+            },
+            {
+              "id": "lane-1",
+              "label": "Restaurant node, the chain",
+              "x": 940,
+              "y": 0,
+              "w": 360,
+              "h": 988,
+              "color": "sky"
+            },
+            {
+              "id": "lane-2",
+              "label": "Hub, the platform",
+              "x": 1380,
+              "y": 0,
+              "w": 360,
+              "h": 988,
+              "color": "green"
+            }
+          ]
+        }
+      },
+      {
+        "id": "p-settle",
+        "type": "process",
+        "label": "Settle to paid",
+        "notes": "Open it: seven steps from the week closing to the chain paid.",
+        "x": 860,
+        "y": 300,
+        "h": 195,
+        "facts": {
+          "owner": "the platform's finance",
+          "cases": "about 600 statements a week",
+          "cycle": "9 days"
+        },
+        "on": [
+          "ssettle",
+          "phq",
+          "rho",
+          "sorders",
+          "bi1"
+        ],
+        "detail": {
+          "title": "Settle to paid",
+          "nodes": [
+            {
+              "id": "ev-s1",
+              "type": "event",
+              "label": "Week closes",
+              "notes": "",
+              "x": 540,
+              "y": 40,
+              "h": 159,
+              "facts": {
+                "source": "the platform's analytics node",
+                "rate": "weekly",
+                "carries": "every delivered order"
+              },
+              "on": [
+                "phq",
+                "sorders"
+              ]
+            },
+            {
+              "id": "st-s1",
+              "type": "stage",
+              "label": "Compute the settlement",
+              "notes": "",
+              "x": 540,
+              "y": 255,
+              "h": 178,
+              "facts": {
+                "actor": "the analytics node",
+                "system": "the platform's analytics",
+                "touch": "40 minutes for every restaurant"
+              },
+              "on": [
+                "phq",
+                "sorders"
+              ],
+              "by": "rule"
+            },
+            {
+              "id": "st-s2",
+              "type": "stage",
+              "label": "Publish the statement, signed",
+              "notes": "One row per order; the chain verifies the platform's key.",
+              "x": 540,
+              "y": 489,
+              "h": 216,
+              "facts": {
+                "actor": "the analytics node",
+                "system": "the shared library",
+                "touch": "instant"
+              },
+              "on": [
+                "phq",
+                "ssettle",
+                "shared"
+              ],
+              "by": "rule"
+            },
+            {
+              "id": "st-s3",
+              "type": "stage",
+              "label": "Reconcile by order",
+              "notes": "Matched by order id against the till.",
+              "x": 980,
+              "y": 40,
+              "h": 199,
+              "facts": {
+                "actor": "the head office node",
+                "system": "the chain's own sales",
+                "touch": "20 minutes"
+              },
+              "on": [
+                "rho",
+                "ssettle",
+                "bi1"
+              ],
+              "by": "rule"
+            },
+            {
+              "id": "qu-s1",
+              "type": "queue",
+              "label": "Disputed lines",
+              "notes": "An agent could raise and settle the small ones under the limit.",
+              "x": 980,
+              "y": 295,
+              "h": 214,
+              "facts": {
+                "items": "about 200 a week",
+                "wait": "6 days",
+                "workedby": "the chain's finance desk"
+              },
+              "on": [
+                "ssettle",
+                "bi1"
+              ],
+              "by": "agent",
+              "proposed": true
+            },
+            {
+              "id": "role-s1",
+              "type": "role",
+              "label": "Chain finance desk",
+              "notes": "",
+              "x": 980,
+              "y": 565,
+              "h": 125,
+              "facts": {
+                "people": "3",
+                "system": "the reconciliation dashboards",
+                "hours": "9 to 5, weekdays"
+              }
+            },
+            {
+              "id": "sla-s1",
+              "type": "sla",
+              "label": "Paid within nine days",
+              "notes": "",
+              "x": 980,
+              "y": 746,
+              "h": 159,
+              "facts": {
+                "measure": "week close to paid",
+                "target": "9 days",
+                "onmiss": "both finance leads are told"
+              },
+              "on": [
+                "bi1"
+              ]
+            },
+            {
+              "id": "gt-s1",
+              "type": "gate",
+              "label": "Dispute over the limit",
+              "notes": "",
+              "x": 1420,
+              "y": 40,
+              "h": 193,
+              "facts": {
+                "rule": "a line over 50, or a repeat: a person de",
+                "approver": "the platform's partner finance",
+                "limit": "50"
+              },
+              "on": [
+                "ssettle"
+              ],
+              "by": "approved",
+              "proposed": true
+            },
+            {
+              "id": "st-s4",
+              "type": "stage",
+              "label": "Pay the chain",
+              "notes": "",
+              "x": 1420,
+              "y": 289,
+              "h": 178,
+              "facts": {
+                "actor": "the platform's finance",
+                "system": "the bank file from the statement",
+                "touch": "10 minutes"
+              },
+              "on": [
+                "ssettle",
+                "phq"
+              ],
+              "by": "rule"
+            },
+            {
+              "id": "ev-s2",
+              "type": "event",
+              "label": "Paid",
+              "notes": "",
+              "x": 1420,
+              "y": 523,
+              "h": 129,
+              "facts": {
+                "source": "the platform's finance",
+                "carries": "amount, disputes settled"
+              },
+              "on": [
+                "ssettle",
+                "rho"
+              ]
+            },
+            {
+              "id": "role-s2",
+              "type": "role",
+              "label": "Partner finance",
+              "notes": "",
+              "x": 1420,
+              "y": 708,
+              "h": 110,
+              "facts": {
+                "people": "5",
+                "system": "the platform's analytics",
+                "hours": "9 to 6, weekdays"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "s1",
+              "from": "ev-s1",
+              "to": "st-s1",
+              "label": "week closed",
+              "style": "solid",
+              "step": 1
+            },
+            {
+              "id": "s2",
+              "from": "st-s1",
+              "to": "st-s2",
+              "label": "computed",
+              "style": "solid",
+              "step": 2
+            },
+            {
+              "id": "s3",
+              "from": "st-s2",
+              "to": "st-s3",
+              "label": "signed statement",
+              "style": "solid",
+              "kind": "handoff",
+              "step": 3,
+              "fromSide": "right",
+              "toSide": "left",
+              "labelAt": 0.3
+            },
+            {
+              "id": "s4",
+              "from": "st-s3",
+              "to": "qu-s1",
+              "label": "mismatches",
+              "style": "solid",
+              "step": 4
+            },
+            {
+              "id": "s5",
+              "from": "qu-s1",
+              "to": "gt-s1",
+              "label": "disputes",
+              "style": "solid",
+              "kind": "handoff",
+              "step": 5,
+              "fromSide": "right",
+              "toSide": "left",
+              "labelAt": 0.3
+            },
+            {
+              "id": "s6",
+              "from": "gt-s1",
+              "to": "st-s4",
+              "label": "settled",
+              "style": "solid",
+              "step": 6
+            },
+            {
+              "id": "s7",
+              "from": "st-s4",
+              "to": "ev-s2",
+              "label": "paid",
+              "style": "solid",
+              "step": 7
+            },
+            {
+              "id": "s8",
+              "from": "@sorders",
+              "to": "st-s1",
+              "label": "reads delivered orders",
+              "style": "solid",
+              "kind": "read",
+              "toSide": "top",
+              "labelAt": 0.4
+            },
+            {
+              "id": "s9",
+              "from": "st-s2",
+              "to": "@ssettle",
+              "label": "writes one row per order",
+              "style": "solid",
+              "fromSide": "right",
+              "toSide": "bottom",
+              "labelAt": 0.8
+            },
+            {
+              "id": "s10",
+              "from": "@ssettle",
+              "to": "st-s3",
+              "label": "reads, verifies",
+              "style": "solid",
+              "kind": "read",
+              "toSide": "top",
+              "labelAt": 0.4
+            }
+          ],
+          "groups": [
+            {
+              "id": "lane-0",
+              "label": "Analytics node, the platform",
+              "x": 500,
+              "y": 0,
+              "w": 360,
+              "h": 935,
+              "color": "green"
+            },
+            {
+              "id": "lane-1",
+              "label": "Finance desk, the chain",
+              "x": 940,
+              "y": 0,
+              "w": 360,
+              "h": 935,
+              "color": "amber"
+            },
+            {
+              "id": "lane-2",
+              "label": "Partner finance, the platform",
+              "x": 1380,
+              "y": 0,
+              "w": 360,
+              "h": 935,
+              "color": "sky"
+            }
+          ]
+        }
+      },
+      {
+        "id": "metric",
+        "type": "metric",
+        "label": "Promised time, prep time, settlement variance",
+        "notes": "Both parties read the same signed records on their own nodes.",
+        "x": 480,
+        "y": 560,
+        "h": 257,
+        "facts": {
+          "formula": "delivered minus placed; ready minus acce",
+          "target": "95% on time; variance under 0.5%",
+          "cadence": "nightly"
+        },
+        "on": [
+          "bi1",
+          "phq",
+          "rho"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "t1",
+        "from": "policy",
+        "to": "p-order",
+        "label": "limits",
+        "style": "solid",
+        "kind": "read"
+      },
+      {
+        "id": "t2",
+        "from": "policy",
+        "to": "p-menu",
+        "label": "bands",
+        "style": "solid",
+        "kind": "read"
+      },
+      {
+        "id": "t3",
+        "from": "policy",
+        "to": "p-settle",
+        "label": "terms",
+        "style": "solid",
+        "kind": "read"
+      },
+      {
+        "id": "t4",
+        "from": "p-order",
+        "to": "metric",
+        "label": "measured nightly",
+        "style": "solid"
+      },
+      {
+        "id": "t5",
+        "from": "p-menu",
+        "to": "metric",
+        "label": "measured nightly",
+        "style": "solid"
+      },
+      {
+        "id": "t6",
+        "from": "p-settle",
+        "to": "metric",
+        "label": "measured nightly",
+        "style": "solid"
+      }
+    ],
+    "groups": [],
+    "legend": true
+  }
+}

@@ -1,0 +1,76 @@
+# Draft from the MVP sheet of "Kitchen to courier: a chain and a platform on one shared library". Edit freely; the sheet is the intent.
+services:
+  restaurant-node-back-off-1:
+    image: unidatum:${UNIDATUM_VERSION}
+    command: sh -c "unidatum init --library chain-ops --node-name restaurant-node-back-off-1 || true; unidatum serve --port 7480 --no-mdns --sql --dht-port ${DHT_PORT}"
+    volumes: ["restaurant-node-back-off-1-data:/data"]
+    ports: ["7481:7480"]
+    networks: [demo]
+  restaurant-node-back-off-2:
+    image: unidatum:${UNIDATUM_VERSION}
+    command: sh -c "unidatum init --library chain-ops --node-name restaurant-node-back-off-2 || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
+    volumes: ["restaurant-node-back-off-2-data:/data"]
+    ports: ["7581:7480"]
+    networks: [demo]
+  restaurant-node-back-off-3:
+    image: unidatum:${UNIDATUM_VERSION}
+    command: sh -c "unidatum init --library chain-ops --node-name restaurant-node-back-off-3 || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
+    volumes: ["restaurant-node-back-off-3-data:/data"]
+    ports: ["7681:7480"]
+    networks: [demo]
+  regional-hub-1:
+    image: unidatum:${UNIDATUM_VERSION}
+    command: sh -c "unidatum init --library platform-eu --node-name regional-hub-1 || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
+    volumes: ["regional-hub-1-data:/data"]
+    ports: ["7482:7480"]
+    networks: [demo]
+  regional-hub-2:
+    image: unidatum:${UNIDATUM_VERSION}
+    command: sh -c "unidatum init --library platform-eu --node-name regional-hub-2 || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
+    volumes: ["regional-hub-2-data:/data"]
+    ports: ["7582:7480"]
+    networks: [demo]
+  chain-head-office-node:
+    image: unidatum:${UNIDATUM_VERSION}
+    command: sh -c "unidatum init --library chain-ops --node-name chain-head-office-node || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
+    volumes: ["chain-head-office-node-data:/data"]
+    ports: ["7483:7480"]
+    networks: [demo]
+  platform-analytics-node:
+    image: unidatum:${UNIDATUM_VERSION}
+    command: sh -c "unidatum init --library platform-eu --node-name platform-analytics-node || true; unidatum serve --port 7480 --no-mdns --sql --bootstrap restaurant-node-back-off-1:${DHT_PORT}"
+    volumes: ["platform-analytics-node-data:/data"]
+    ports: ["7484:7480"]
+    networks: [demo]
+  sqld:
+    image: unidatum:${UNIDATUM_VERSION}
+    command: unidatum sql-serve --pg-port 5433 --flight-port 47820
+    depends_on: [restaurant-node-back-off-1]
+    ports: ["5433:5433"]
+    networks: [demo]
+  metabase:
+    image: metabase/metabase
+    ports: ["3000:3000"]
+    networks: [demo]
+  kitchen-display-sim:
+    build: ./sims/kitchen-display
+    depends_on: [restaurant-node-back-off-1]
+    networks: [demo]
+  courier-and-customer-app-sim:
+    build: ./sims/courier-and-customer-app
+    depends_on: [restaurant-node-back-off-1]
+    networks: [demo]
+  seed:
+    build: ./seed
+    depends_on: [restaurant-node-back-off-1]
+    networks: [demo]
+volumes:
+  restaurant-node-back-off-1-data: {}
+  restaurant-node-back-off-2-data: {}
+  restaurant-node-back-off-3-data: {}
+  regional-hub-1-data: {}
+  regional-hub-2-data: {}
+  chain-head-office-node-data: {}
+  platform-analytics-node-data: {}
+networks:
+  demo: {}
