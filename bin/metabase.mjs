@@ -16,7 +16,7 @@ const QUESTIONS = [
   { db: 0, name: "Prep time by restaurant (step 3)", sql: "SELECT restaurant_id, day, round(avg(prep_s) / 60.0, 1) AS prep_minutes, count(*) AS orders FROM deliveries_curated GROUP BY restaurant_id, day ORDER BY day, restaurant_id" },
   { db: 0, name: "Delivery time by hub (step 5)", sql: "SELECT hub_id, substr(delivered_at, 12, 2) AS hour, round(avg(ride_s) / 60.0, 1) AS ride_minutes, sum(CASE WHEN late THEN 1 ELSE 0 END) AS late, count(*) AS orders FROM deliveries_curated GROUP BY hub_id, hour ORDER BY hub_id, hour" },
   { db: 1, name: "Settlement vs sales (step 7)", sql: "SELECT restaurant_id, count(*) AS mismatches, sum(mismatch_cents) AS mismatch_cents FROM settlement_mismatches GROUP BY restaurant_id ORDER BY restaurant_id" },
-  { db: 0, name: "Orders in flight now (steps 1 to 4)", sql: "SELECT json_extract_string(doc, '$.status') AS status, count(*) AS n FROM platform_orders WHERE json_extract_string(doc, '$.status') IN ('created', 'accepted', 'ready', 'collected') GROUP BY 1 ORDER BY 1" },
+  { db: 0, name: "Orders in flight now (steps 1 to 4)", sql: "SELECT json_extract_string(doc, '$.status') AS status, count(*) AS n FROM (SELECT * FROM platform_orders WHERE NOT _deleted QUALIFY row_number() OVER (PARTITION BY _id ORDER BY _ts DESC) = 1) WHERE json_extract_string(doc, '$.status') IN ('created', 'accepted', 'ready', 'collected') GROUP BY 1 ORDER BY 1" },
 ];
 
 let session = null;

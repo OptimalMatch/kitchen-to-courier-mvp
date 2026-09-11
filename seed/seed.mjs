@@ -67,7 +67,7 @@ async function main() {
     if (!live) Object.assign(o, { accepted_at: iso(accepted), ready_at: iso(readyAt), courier_id: courier._id, collected_at: iso(collected), delivered_at: iso(delivered) });
     orders.push(o);
     // The chain's till: the same order, with the platform's fee taken off; a few deliberate mismatches to reconcile.
-    if (!live) sales.push({ _id: o._id, order_id: o._id, restaurant_id: r.id, day: o.delivered_at.slice(0, 10), gross_cents: total_cents, net_cents: Math.round(total_cents * (1 - FEE)) + (rnd() < 0.02 ? 100 : 0) });
+    if (!live) sales.push({ _id: o._id, order_id: o._id, restaurant_id: r.id, day: o.delivered_at.slice(0, 10), gross_cents: total_cents, net_cents: total_cents - Math.round(total_cents * FEE) + (rnd() < 0.02 ? 100 : 0) });
   }
   for (let i = 0; i < orders.length; i += 200) await F.hubs[0].shared.put("platform_orders", orders.slice(i, i + 200));
   console.log(`platform_orders: ${orders.length} on the shared library (${orders.filter((o) => o.status === "created").length} still open)`);

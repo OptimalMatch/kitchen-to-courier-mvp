@@ -57,9 +57,9 @@ export const SPECS = {
     ]),
     spec("reconcile", "head-office", [
       node("src", "source", { collection: "settlements", library: "/data/chain-platform-shared", cursorField: "settled_at" }),
-      node("till", "enrich", { collection: "sales", key: "order_id", fields: "net_cents", onmiss: "keep" }),
-      node("diff", "compute", { field: "mismatch_cents", expr: "CAST(net_cents AS BIGINT) - CAST(coalesce(sales_net_cents, 0) AS BIGINT)" }),
-      node("only", "filter", { logic: "mismatch_cents <> 0" }),
+      node("till", "enrich", { collection: "sales", key: "order_id", fields: "net_cents", prefix: "sales_", onmiss: "keep" }),
+      node("diff", "compute", { field: "mismatch_cents", expr: "net_cents - sales_net_cents" }),
+      node("only", "filter", { field: "mismatch_cents", op: "!=", value: "0" }),
       node("keep", "select", { fields: "order_id, restaurant_id, week, net_cents, sales_net_cents, mismatch_cents" }),
       node("out", "target", { collection: "settlement_mismatches", kind: "table" }),
     ]),
