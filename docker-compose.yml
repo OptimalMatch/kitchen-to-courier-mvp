@@ -65,8 +65,11 @@ services:
     environment:
       NODE_NAME: hub-1
       LIBRARIES: "platform-eu:47800:47801:7480;chain-platform-shared:47810:47811:7481"
+      SQLD: "chain-platform-shared:5433"
+      SQLD_USER: "${SQLD_USER:-demo}"
+      SQLD_PASSWORD: "${SQLD_PASSWORD}"
     volumes: ["hub-1-data:/data"]
-    ports: ["17520:7480", "17521:7481"]
+    ports: ["17520:7480", "17521:7481", "15435:5433"]
   hub-2:
     <<: *node
     environment:
@@ -137,6 +140,7 @@ services:
   # The dashboards: Metabase over the PostgreSQL wire of the analytics node and the head office.
   metabase:
     image: metabase/metabase:latest
+    environment: { MB_LOAD_SAMPLE_CONTENT: "false" }
     ports: ["13100:3000"]
     networks: [demo]
     depends_on: [analytics, head-office]

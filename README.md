@@ -33,6 +33,46 @@ step. About eight minutes.
 The kit as delivered is the first commit, and its files are unchanged
 below: the contract this was built to.
 
+## Results
+
+From the last run, a fleet built from nothing by `bin/demo-up.sh`, three
+live orders placed, twenty-one checks passing (`checks/run.mjs`).
+
+| what the sheet asked | target | measured |
+| --- | --- | --- |
+| a live order, placed to delivered | | 56 s: accepted 11 s after placing, ready 16 s later, dispatched 4 s after that, collected in 3 s, delivered 22 s on |
+| a menu price change live on the platform, signed | 5 minutes | 31 s |
+| orders delivered inside the promised time | 95% | 98.3% of 1,009 |
+| week close to the chain paid | 9 days | at most 7 days from delivery to the statement row |
+| settlement lines the chain disputes | the 2% the seed plants | 27 found (10, 6, 11 across the restaurants), including the six live orders delivered before the kitchen wrote its till record |
+| signed publishes verified on the other side | every commit | hub-1 and the head office merged every op, none rejected |
+| the four dashboard queries | rows | 24, 48, 3 and 2 rows |
+
+![One live order from the logs](docs/results/order.webp)
+
+The pipelines page of the head office's node on the shared library: the
+menu publish running here, the settlement pinned to the analytics node,
+placement across the seven nodes, and the pipeline drawn in motion.
+
+![Pipelines on the head office's shared node](docs/results/head-office-pipelines.webp)
+
+Metabase over the PostgreSQL wires: prep time by restaurant and delivery
+time by hub from the analytics node, settlement against sales from the
+head office, orders in flight from hub-1.
+
+![The dashboards](docs/results/metabase.webp)
+
+The shared library from hub-1's node: six peers, all reached over QUIC,
+the platform's and the chain's nodes in one circle.
+
+![Peers of the shared library](docs/results/hub1-peers.webp)
+
+`deliveries_curated` on the analytics node: sixteen columns landed by the
+curate pipeline from the shared orders, prep, wait and ride times in
+seconds, and whether the order was late.
+
+![The curated deliveries table](docs/results/analytics-data.webp)
+
 ---
 
 # Kitchen to courier: a chain and a platform on one shared library: build kit
