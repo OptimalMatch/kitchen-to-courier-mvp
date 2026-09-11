@@ -27,7 +27,7 @@ for entry in $(echo "$LIBRARIES" | tr ';' ' '); do
   boot=$(lookup "${BOOTSTRAP:-}" "$lib")
   set -- ui --port "$sync" --dht-port "$dht" --ui-port "$ui" --bind "" --no-mdns --sql --sync-every 15
   [ -n "$boot" ] && set -- "$@" --bootstrap "$boot"
-  unidatum "$@" 2>&1 | sed "s/^/[$lib] /" &
+  unidatum "$@" 2>&1 | sed -u "s/^/[$lib] /" &
   pids="$pids $!"
   echo "$NODE_NAME: $lib serving on $sync (api $ui)${boot:+, bootstrap $boot}"
 done
@@ -45,14 +45,14 @@ done
 if [ -n "${SQLD:-}" ]; then
   lib=$(echo "$SQLD" | cut -d: -f1); pg=$(echo "$SQLD" | cut -d: -f2)
   cd "/data/$lib"
-  unidatum sql-serve --bind 0.0.0.0 --pg-port "$pg" --flight-port 0 --mysql-port 0 --oracle-port 0 --tds-port 0 --user "${SQLD_USER:-demo}" --password "${SQLD_PASSWORD:?SQLD_PASSWORD is required for the SQL wire}" 2>&1 | sed "s/^/[$lib sqld] /" &
+  unidatum sql-serve --bind 0.0.0.0 --pg-port "$pg" --flight-port 0 --mysql-port 0 --oracle-port 0 --tds-port 0 --user "${SQLD_USER:-demo}" --password "${SQLD_PASSWORD:?SQLD_PASSWORD is required for the SQL wire}" 2>&1 | sed -u "s/^/[$lib sqld] /" &
   pids="$pids $!"
   echo "$NODE_NAME: SQL wire for $lib on $pg"
 fi
 # Serve this library's pipelines (the publish jobs), if asked.
 for lib in $(echo "${PIPELINES:-}" | tr ';' ' '); do
   cd "/data/$lib"
-  unidatum pipeline serve --every "${PIPELINE_EVERY:-30s}" 2>&1 | sed "s/^/[$lib pipelines] /" &
+  unidatum pipeline serve --every "${PIPELINE_EVERY:-30s}" 2>&1 | sed -u "s/^/[$lib pipelines] /" &
   pids="$pids $!"
   echo "$NODE_NAME: serving pipelines of $lib"
 done

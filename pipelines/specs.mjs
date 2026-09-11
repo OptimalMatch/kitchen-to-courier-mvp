@@ -45,7 +45,7 @@ export const SPECS = {
       node("ride", "compute", { field: "ride_s", expr: "date_diff('second', CAST(collected_at AS TIMESTAMP), CAST(delivered_at AS TIMESTAMP))" }),
       node("total", "compute", { field: "total_s", expr: "date_diff('second', CAST(created_at AS TIMESTAMP), CAST(delivered_at AS TIMESTAMP))" }),
       node("late", "compute", { field: "late", expr: "CAST(delivered_at AS TIMESTAMP) > CAST(promised_at AS TIMESTAMP)" }),
-      node("day", "compute", { field: "day", expr: "substr(delivered_at, 1, 10)" }),
+      node("day", "compute", { field: "day", expr: "strftime(CAST(delivered_at AS TIMESTAMP), '%Y-%m-%d')" }),
       node("keep", "select", { fields: "order_id, restaurant_id, hub_id, courier_id, day, created_at, accepted_at, ready_at, collected_at, delivered_at, prep_s, wait_s, ride_s, total_s, late" }),
       node("out", "target", { collection: "deliveries_curated", kind: "table" }),
     ]),

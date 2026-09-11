@@ -17,7 +17,9 @@ and what this build did about it. The kit's prompt asked for this file.
    checks fetch what is missing before writing (`ensureLocal` in
    `lib/api.mjs`, `bin/hold.mjs` after the seed). A production kitchen
    display would do the same, or the node would run with the collection
-   followed.
+   followed. A read hits the same rule when another node has just written
+   a member this node does not hold yet, so the client fetches and retries
+   once on that answer.
 3. **SQL over a collection sees every version.** `SELECT ... FROM
    platform_orders` reads the delta members, one row per document
    version, with the fields in a JSON `doc` column. Queries that want the
@@ -61,3 +63,15 @@ and what this build did about it. The kit's prompt asked for this file.
     proposed for an agent in the design and have no agent card, so they
     run as rules or by hand here and appear in `DEMO.md` as the slides
     they would be.
+11. **The till.** The design's reconciliation compares the platform's
+    statement to the chain's own sales, but nothing in the design writes
+    the chain's record of a platform order. The seed writes it for the
+    week of history and the kitchen display writes it when it marks an
+    order ready: one `sales` document on the chain's library, gross and
+    net, which is what a till would do. Without it every live order
+    reconciled as a mismatch, which is how the gap was found.
+12. **Rounding.** The settlement takes the fee as `round(total * 0.25)`
+    in DuckDB and the seed first took the net as `Math.round(total *
+    0.75)` in JavaScript; a third of the orders differed by a cent. The
+    build sheet says which fields each side sets, not how each side
+    rounds; a real settlement agreement would.
