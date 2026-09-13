@@ -149,7 +149,27 @@ services:
     depends_on: [analytics, head-office]
     volumes: ["metabase-data:/metabase.db"]
 
+  # The platform's own router. Couriers ask it how to get from where they are
+  # to the pickup and on to the customer, instead of asking a stranger's demo
+  # server: the platform already tells them where the hubs are and what is on
+  # the menu, and how to get there is the same kind of thing. Valhalla, built
+  # from the Geofabrik extract of Ireland; the first start spends a few minutes
+  # building tiles and every start after that finds them already built.
+  router:
+    image: ghcr.io/nilsnolde/docker-valhalla/valhalla:latest
+    environment:
+      tile_urls: "https://download.geofabrik.de/europe/ireland-and-northern-ireland-latest.osm.pbf"
+      server_threads: "4"
+      build_elevation: "False"      # a courier on a bike in Dublin; the hills are not the problem
+      build_admins: "True"
+      build_time_zones: "False"
+      use_tiles_ignore_pbf: "True"  # do not rebuild when the extract is untouched
+    ports: ["18010:8002"]
+    networks: [demo]
+    volumes: ["router-tiles:/custom_files"]
+
 volumes:
+  router-tiles: {}
   restaurant-1-data: {}
   restaurant-2-data: {}
   restaurant-3-data: {}
