@@ -17,6 +17,8 @@ for (;;) {
     await ensureLocal(h.shared, "platform_orders."); await ensureLocal(h.eu, "couriers.");
     const assigned = await h.shared.find("platform_orders", { status: "ready", hub_id: hid, courier_id: { $exists: true } }, 20);
     for (const o of assigned) {
+      // A real courier app (the Android one, ids app-*) collects its own orders; this process plays only the seeded hub-N-cNN couriers.
+      if (!/^hub-\d+-c\d+$/.test(String(o.courier_id))) continue;
       await h.shared.update("platform_orders", { _id: o._id, status: "ready" }, { $set: { status: "collected", collected_at: now() } });
       riding.set(o._id, { at: Date.now() + RIDE_MS, courier: o.courier_id });
       console.log(`${hid}: ${o.courier_id} collected ${o._id}`);

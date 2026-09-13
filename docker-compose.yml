@@ -69,7 +69,10 @@ services:
       SQLD_USER: "${SQLD_USER:-demo}"
       SQLD_PASSWORD: "${SQLD_PASSWORD}"
     volumes: ["hub-1-data:/data"]
-    ports: ["17520:7480", "17521:7481", "15435:5433"]
+    # 17811/17812: hub-1's shared-library sync and DHT ports on the host, so a
+    # node outside the compose network — a courier's phone — can join the
+    # shared library by syncing with hub-1 (kitchen-to-courier-android).
+    ports: ["17520:7480", "17521:7481", "15435:5433", "17811:47810", "17812:47811/udp"]
   hub-2:
     <<: *node
     environment:
