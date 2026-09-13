@@ -40,6 +40,12 @@ office), user `demo`.
 | 9. Late or wrong: refund? | proposed for an agent | a slide: "20 minutes late or an item missing: refund the item; over 40 goes to a person" | |
 | 10. Delivered | | the customer app's last line | the order's whole timeline on one document |
 
+The courier app's basemap travels the same way the orders do:
+`bin/publish-basemap.sh dublin.pmtiles` puts the vector archive into
+`chain-platform-shared`, and every courier's node replicates it like any
+other member. No tile server is involved, and a phone that has it keeps its
+map with no network at all.
+
 Tracking the courier, as a customer app would:
 `docker compose run --rm tools node sims/track.mjs [order id]` prints the
 order's status every 5 seconds, and once it carries a `courier_id`, that
