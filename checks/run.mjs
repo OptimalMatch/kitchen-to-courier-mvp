@@ -52,7 +52,19 @@ let publishedAt = null;
 await check(13, "after Publish, signed: menu_published writes the published rows", async () => { for (let i = 0; i < 60; i++) { await ensureLocal(F.hubs[0].shared, ""); const rows = await F.hubs[0].shared.sql(`SELECT price_cents FROM menu_published WHERE restaurant_id = 'r1' AND item_id = '${item.item_id}' ORDER BY published_at DESC LIMIT 1`); if (rows[0] && Number(rows[0].price_cents) === newPrice) { publishedAt = Date.now(); return `hub-1 reads ${newPrice} after ${((publishedAt - t0) / 1000).toFixed(0)} s`; } await sleep(5000); } throw new Error("the new price did not reach the platform in five minutes"); });
 await check(14, "after Publish the statement, signed: settlements writes one row per order", async () => { await ensureLocal(F.headOffice.shared, ""); const c = await settledCount(F.headOffice.shared); expect(c === delivered, `${c} rows at the head office, ${delivered} delivered`); return `${c} rows read at the head office`; });
 // Service levels over the run.
-await check(15, "Promised time kept: placed to delivered within the promise, 95% of orders", async () => { const rows = await F.analytics.eu.sql("SELECT sum(CASE WHEN late THEN 0 ELSE 1 END) AS ok, count(*) AS n FROM deliveries_curated"); const ok = Number(rows[0].ok), n = Number(rows[0].n); expect(n > 0 && ok / n >= 0.95, `${ok} of ${n} on time`); return `${((100 * ok) / n).toFixed(1)}% of ${n} on time`; });
+await check(15, "Promised time kept: placed to delivered within the promise, 95% of orders", async () => {
+  const done = live.filter((o) => o.status === "delivered" && o.promised_at);
+  expect(done.length > 0, "no delivered live orders");
+  const ok = done.filter((o) => Date.parse(o.delivered_at) <= Date.parse(o.promised_at));
+  const pct = (ok.length / done.length) * 100;
+  const promised = done.map((o) => (Date.parse(o.promised_at) - Date.parse(o.created_at)) / 60000);
+  const mean = promised.reduce((a, b) => a + b, 0) / promised.length;
+  const learned = done.filter((o) => o.promised_from && !/flat|no model|unreachable/.test(o.promised_from)).length;
+  expect(pct >= 95, `${pct.toFixed(1)}% of ${done.length} on time`);
+  // The pair is the point: a promise is only better if it got SHORTER without
+  // the on-time rate falling. Quoting longer always improves the rate.
+  return `${pct.toFixed(1)}% of ${done.length} on time, promised ${mean.toFixed(1)} min on average, ${learned} of them from the learned model`;
+});
 await check(16, "Change live in five minutes: edit to live within 5 minutes", async () => { expect(publishedAt, "the price change never went live"); const s = (publishedAt - t0) / 1000; expect(s <= 300, `${s.toFixed(0)} s`); return `${s.toFixed(0)} s`; });
 await check(17, "Paid within nine days: week close to paid within 9 days", async () => { const rows = await F.analytics.shared.sql("SELECT max(date_diff('day', CAST(delivered_at AS TIMESTAMP), to_timestamp(settled_at / 1000))) AS n FROM settlements"); const d = Number(rows[0].n); expect(d <= 9, `${d} days`); return `at most ${d} day(s) from delivery to the statement`; });
 // The dashboards' queries return rows.

@@ -40,6 +40,14 @@ office), user `demo`.
 | 9. Late or wrong: refund? | proposed for an agent | a slide: "20 minutes late or an item missing: refund the item; over 40 goes to a person" | |
 | 10. Delivered | | the customer app's last line | the order's whole timeline on one document |
 
+The promised time is learned, not picked:
+`bin/learn-promise.mjs` reads the fleet's own delivered orders and publishes
+a `promise_model` document on platform-eu, quoting the percentile history
+supports for each restaurant and hub. The customer app reads it.
+`bin/backtest-promise.mjs` scores it against the flat forty minutes it
+replaces — on the seeded history, 2.6 minutes shorter for 4.6 points of
+on-time, which is the trade the target percentile buys.
+
 The courier app's basemap travels the same way the orders do:
 `bin/publish-basemap.sh dublin.pmtiles` puts the vector archive into
 `chain-platform-shared`, and every courier's node replicates it like any

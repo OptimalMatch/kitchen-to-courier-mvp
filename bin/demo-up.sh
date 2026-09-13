@@ -13,6 +13,8 @@ docker compose --profile sims up -d
 echo "--- pipelines land every 30 s; waiting for the first passes"; sleep 90
 docker compose run --rm tools node bin/hold.mjs
 docker compose run --rm tools node bin/metabase.mjs
+echo "--- learning the promised time from the seeded history"
+docker compose run --rm tools node bin/learn-promise.mjs
 echo "--- placing three live orders"
 docker compose run --rm tools node sims/customer.mjs
 echo "--- the checks"
