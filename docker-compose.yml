@@ -159,7 +159,12 @@ services:
     image: ghcr.io/nilsnolde/docker-valhalla/valhalla:latest
     environment:
       tile_urls: "https://download.geofabrik.de/europe/ireland-and-northern-ireland-latest.osm.pbf"
-      server_threads: "4"
+      # Measured on this box (32 cores): the work is cheap — a map match is 4 ms
+      # and a route 7 ms — and what binds is connection setup, not routing.
+      # With connections reused the router sustained 4,300 map matches a second
+      # with nothing refused; with a new connection per request it collapsed
+      # above about 1,300. Threads past 16 buy little for that reason.
+      server_threads: "16"
       build_elevation: "False"      # a courier on a bike in Dublin; the hills are not the problem
       build_admins: "True"
       build_time_zones: "False"
