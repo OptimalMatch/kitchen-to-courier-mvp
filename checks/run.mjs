@@ -3,10 +3,15 @@
 //   docker compose run --rm tools node checks/run.mjs        (in the network)
 //   FROM_HOST=1 node checks/run.mjs                           (from the host)
 import { fleet, ready, ensureLocal, sleep, now } from "../lib/api.mjs";
+import { checkCourier } from "../sims/hub-verify.mjs";
 const F = fleet();
 const SEED = { menu: 120, couriers: 60, orders: 1000, delivered: 988 };
 const results = [];
-const check = async (n, name, fn) => { try { const detail = await fn(); results.push({ n, name, ok: true, detail }); console.log(`ok   ${String(n).padStart(2)}  ${name}${detail ? `  (${detail})` : ""}`); } catch (e) { results.push({ n, name, ok: false, detail: e.message }); console.log(`FAIL ${String(n).padStart(2)}  ${name}: ${e.message}`); } };
+// A check that could not run must never look like one that passed: throwing Skip
+// reports "skip", counted apart from the passes.
+class Skip extends Error {}
+const skip = (why) => { throw new Skip(why); };
+const check = async (n, name, fn) => { try { const detail = await fn(); results.push({ n, name, ok: true, detail }); console.log(`ok   ${String(n).padStart(2)}  ${name}${detail ? `  (${detail})` : ""}`); } catch (e) { if (e instanceof Skip) { results.push({ n, name, skipped: true, detail: e.message }); console.log(`skip ${String(n).padStart(2)}  ${name}: ${e.message}`); return; } results.push({ n, name, ok: false, detail: e.message }); console.log(`FAIL ${String(n).padStart(2)}  ${name}: ${e.message}`); } };
 const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
 const sqlN = async (node, q) => Number((await node.sql(q))[0]?.n ?? NaN);
 const liveOrders = async () => F.hubs[0].shared.find("platform_orders", { _id: { $regex: "^o-live-" } }, 500);
@@ -23,7 +28,9 @@ await check(3, "menu_published: count equals what was seeded plus what the scrip
 // The settlement lands every 30 s: an order delivered a moment ago is given up to 90 s to reach the statement.
 const settledCount = async (node) => { let c = 0; for (let i = 0; i < 18; i++) { c = await sqlN(node, "SELECT count(DISTINCT order_id) AS n FROM settlements"); if (c >= delivered) break; await sleep(5000); } return c; };
 await check(4, "settlements: count equals what was seeded plus what the script wrote", async () => { const c = await settledCount(F.analytics.shared); expect(c === delivered, `${c} settled, ${delivered} delivered`); return `${c} = delivered orders`; });
-await check(5, "couriers: count equals what was seeded plus what the script wrote", async () => { const c = await F.hubs[0].eu.count("couriers"); expect(c === SEED.couriers, `${c}, seeded ${SEED.couriers}`); return `${c}`; });
+// Couriers: the seeded ones, plus one for every courier app that has joined — a
+// phone running the Android app registers itself as app-<model>.
+await check(5, "couriers: count equals what was seeded plus what the script wrote", async () => { const all = await F.hubs[0].eu.find("couriers", {}, 0); const apps = all.filter((c) => /^app-/.test(c._id)); expect(all.length === SEED.couriers + apps.length, `${all.length}, seeded ${SEED.couriers} + ${apps.length} courier app(s)`); return `${all.length} = ${SEED.couriers}${apps.length ? ` + ${apps.length} courier app(s): ${apps.map((c) => c._id).join(", ")}` : ""}`; });
 // Signatures: the other side holds the table's versions and its log shows nothing rejected.
 const verified = async (node, table, who) => { const files = await node.get("/api/files"); const heads = files.filter((f) => f.name === `${table}.table` && f.head); expect(heads.length > 0, `${node.name} has no version of ${table}`); const log = (await node.get("/api/log")).lines || []; const bad = log.filter((l) => /rejected [1-9]/.test(l.text)); expect(bad.length === 0, `${node.name} rejected ops: ${bad[0]?.text}`); const merged = log.filter((l) => /merged \d+ op\(s\), rejected 0/.test(l.text)).length; return `${who} verified ${merged} merges, none rejected; ${heads.length} head version(s) of ${table}`; };
 await check(6, "menu_published: every commit carries the chain's signature and the platform verifies it", () => verified(F.hubs[0].shared, "menu_published", "hub-1"));
@@ -54,6 +61,22 @@ await check(19, "Reconciliation and prep-time dashboards: Delivery time by hub r
 await check(20, "Reconciliation and prep-time dashboards: Settlement vs sales returns rows", async () => { const r = await F.headOffice.ops.sql("SELECT restaurant_id, count(*) AS mismatches FROM settlement_mismatches GROUP BY restaurant_id"); expect(r.length > 0, "no mismatches found (the seed plants about 2%)"); return r.map((x) => `${x.restaurant_id} ${x.mismatches}`).join(", "); });
 await check(21, "Reconciliation and prep-time dashboards: Orders in flight now returns rows", async () => { const r = await F.hubs[0].shared.sql("SELECT json_extract_string(doc, '$.status') AS status, count(*) AS n FROM (SELECT * FROM platform_orders WHERE NOT _deleted QUALIFY row_number() OVER (PARTITION BY _id ORDER BY _ts DESC) = 1) WHERE json_extract_string(doc, '$.status') IN ('created', 'accepted', 'ready', 'collected') GROUP BY 1 ORDER BY 1"); return r.length ? r.map((x) => `${x.status} ${x.n}`).join(", ") : "none in flight"; });
 
-const failed = results.filter((r) => !r.ok);
-console.log(`\n${results.length - failed.length} of ${results.length} checks pass${failed.length ? `; failed: ${failed.map((f) => f.n).join(", ")}` : ""}`);
+// The courier app's signature: a courier that runs the phone app holds a key in
+// its keystore and signs every position it writes. The hub verifies it against
+// the public key on that courier's own document. The simulated couriers hold no
+// key, so with no app joined there is nothing to verify and the check skips.
+await check(22, "couriers: every position an app courier writes carries that courier's signature and the hub verifies it", async () => {
+  const couriers = await F.hubs[0].eu.find("couriers", {}, 0);
+  const withKey = couriers.filter((c) => c.public_key);
+  if (!withKey.length) skip("no courier app has joined; the simulated couriers hold no key");
+  const bad = [];
+  let signed = 0;
+  for (const c of withKey) { const r = checkCourier(c); if (r.state === "signed") signed++; else bad.push(`${c._id}: ${r.state}, ${r.why}`); }
+  expect(bad.length === 0, bad.join("; "));
+  return `${signed} of ${withKey.length} app courier(s) verified`;
+});
+
+const failed = results.filter((r) => r.ok === false);
+const skipped = results.filter((r) => r.skipped);
+console.log(`\n${results.filter((r) => r.ok).length} of ${results.length} checks pass${skipped.length ? `, ${skipped.length} skipped (${skipped.map((s) => s.n).join(", ")})` : ""}${failed.length ? `; failed: ${failed.map((f) => f.n).join(", ")}` : ""}`);
 process.exit(failed.length ? 1 : 0);

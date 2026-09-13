@@ -5,6 +5,7 @@
 // shared library on the hub, as a customer app would through the platform.
 //   node sims/track.mjs [order id]     default: the newest live order on hub-1
 import { fleet, ready, sleep } from "../lib/api.mjs";
+import { compass } from "./hub-verify.mjs";
 const hid = process.env.HUB || "hub-1";
 const F = fleet();
 const h = F.hubs.find((x) => x.id === hid);
@@ -27,7 +28,7 @@ for (;;) {
     if (c?.location) {
       const to = o.status === "ready" ? o.pickup : o.delivery;
       const [lon, lat] = c.location.coordinates;
-      line += `  ${o.courier_id} at ${lat.toFixed(5)}, ${lon.toFixed(5)} (${((Date.now() - Date.parse(c.updated_at)) / 1000).toFixed(0)}s old)`;
+      line += `  ${o.courier_id} at ${lat.toFixed(5)}, ${lon.toFixed(5)}${c.heading === undefined ? "" : ` facing ${compass(c.heading)}`} (${((Date.now() - Date.parse(c.updated_at)) / 1000).toFixed(0)}s old)`;
       if (to?.location) line += `  ${Math.round(metres(c.location.coordinates, to.location.coordinates))} m to ${o.status === "ready" ? "the pickup" : "the customer"}`;
     }
   }
