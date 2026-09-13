@@ -48,6 +48,11 @@ supports for each restaurant and hub. The customer app reads it.
 replaces — on the seeded history, 2.6 minutes shorter for 4.6 points of
 on-time, which is the trade the target percentile buys.
 
+The route comes with the order: dispatch computes both legs once — in to the
+pickup, on to the customer — and writes the polylines onto the order, so a
+courier's phone has the line before the ride starts and asks no router while
+riding. See ROUTING-WITHOUT-A-SERVER.md in the courier app.
+
 The couriers are the traffic data:
 `bin/learn-road-speeds.mjs` takes the trails in `courier_traces`, matches
 them to the road network with the platform's own router, and writes what a
