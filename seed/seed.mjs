@@ -7,7 +7,7 @@
 //   platform_orders the shared library, one per order, a week of history plus a few live ones
 //   sales           chain-ops, the chain's own till record of every delivered order (what settlements reconcile against)
 import { fleet, ready, now } from "../lib/api.mjs";
-import { PICKUPS, delivery } from "../lib/addresses.mjs";
+import { PICKUPS, HUBS, delivery } from "../lib/addresses.mjs";
 
 const F = fleet();
 const ORDERS = Number(process.env.SEED_ORDERS || 1000);
@@ -41,11 +41,18 @@ async function main() {
   }
 
   // 2. Couriers: 30 per hub, near the hub, available or off shift.
+  // The hubs, on the platform's own library: where each one is, so dispatch and
+  // the courier apps read it instead of each carrying the same constant.
+  await F.hubs[0].eu.put("hubs", Object.entries(HUBS).map(([id, h]) => ({ _id: id, hub_id: id, ...h, updated_at: now() })));
+  console.log(`hubs: ${Object.keys(HUBS).length} on platform-eu`);
+
   const couriers = [];
   for (const [hi, h] of F.hubs.entries()) {
     for (let i = 0; i < COURIERS / F.hubs.length; i++) {
       const id = `${h.id}-c${String(i + 1).padStart(2, "0")}`;
-      couriers.push({ _id: id, courier_id: id, hub_id: h.id, state: rnd() > 0.2 ? "available" : "off", location: { type: "Point", coordinates: [CENTRE[0] + (hi ? 0.06 : -0.06) + (rnd() - 0.5) * 0.08, CENTRE[1] + (rnd() - 0.5) * 0.06] }, current_order: null, updated_at: now() });
+      // Waiting near their own hub, not near a point picked off the map.
+      const at = HUBS[h.id].location.coordinates;
+      couriers.push({ _id: id, courier_id: id, hub_id: h.id, state: rnd() > 0.2 ? "available" : "off", location: { type: "Point", coordinates: [at[0] + (rnd() - 0.5) * 0.02, at[1] + (rnd() - 0.5) * 0.014] }, current_order: null, updated_at: now() });
     }
   }
   await F.hubs[0].eu.put("couriers", couriers);
