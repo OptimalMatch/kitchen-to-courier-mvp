@@ -4,7 +4,7 @@
 //   step 5  /api/doc/put  $set status: delivered, delivered_at    delivered
 // One process plays every courier of the hub; a collected order is
 // delivered RIDE_MS later.
-import { fleet, ready, sleep, now, ensureLocal } from "../lib/api.mjs";
+import { fleet, ready, sleep, now, ensureCollection } from "../lib/api.mjs";
 const hid = process.env.HUB || "hub-1";
 const RIDE_MS = Number(process.env.RIDE_MS || 20000);
 const F = fleet();
@@ -14,7 +14,7 @@ await ready(h.shared); await ready(h.eu);
 console.log(`courier app ${hid}: watching ${h.shared.name}`);
 for (;;) {
   try {
-    await ensureLocal(h.shared, "platform_orders."); await ensureLocal(h.eu, "couriers.");
+    await ensureCollection(h.shared, "platform_orders"); await ensureCollection(h.eu, "couriers");
     const assigned = await h.shared.find("platform_orders", { status: "ready", hub_id: hid, courier_id: { $exists: true } }, 20);
     for (const o of assigned) {
       // A real courier app (the Android one, ids app-*) collects its own orders; this process plays only the seeded hub-N-cNN couriers.

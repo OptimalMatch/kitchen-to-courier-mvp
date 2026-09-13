@@ -5,7 +5,7 @@
 //   step 4  /api/doc/find {status: "ready", courier_id missing}  on the shared library
 //           /api/doc/find {state: "available", location $near}    on platform-eu
 //           /api/doc/put  $set courier_id                            on the shared library
-import { fleet, ready, sleep, now, ensureLocal } from "../lib/api.mjs";
+import { fleet, ready, sleep, now, ensureCollection } from "../lib/api.mjs";
 const hid = process.env.HUB || "hub-1";
 const F = fleet();
 const h = F.hubs.find((x) => x.id === hid);
@@ -13,7 +13,7 @@ await ready(h.shared); await ready(h.eu);
 console.log(`dispatch ${hid}: watching ${h.shared.name} and ${h.eu.name}`);
 for (;;) {
   try {
-    await ensureLocal(h.shared, "platform_orders."); await ensureLocal(h.eu, "couriers.");
+    await ensureCollection(h.shared, "platform_orders"); await ensureCollection(h.eu, "couriers");
     const waiting = await h.shared.find("platform_orders", { status: "ready", hub_id: hid, courier_id: { $exists: false } }, 20);
     for (const o of waiting) {
       // The kitchen's location stands in for the pickup point: the hub's centre with a small offset per restaurant.

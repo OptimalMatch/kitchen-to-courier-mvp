@@ -5,7 +5,7 @@
 //   step 3  /api/doc/put  $set status: accepted, accepted_at   accept (one tap)
 //   step 3  /api/doc/put  $set status: ready, ready_at         ready (one tap)
 //   the till /api/doc/put  sales                                the chain's own record, on chain-ops
-import { fleet, ready, sleep, now, ensureLocal } from "../lib/api.mjs";
+import { fleet, ready, sleep, now, ensureCollection } from "../lib/api.mjs";
 const rid = process.env.RESTAURANT || "r1";
 const F = fleet();
 const r = F.restaurants.find((x) => x.id === rid);
@@ -15,7 +15,7 @@ await ready(r.shared);
 console.log(`kitchen display ${rid}: watching ${r.shared.name}`);
 for (;;) {
   try {
-    await ensureLocal(r.shared, "platform_orders.");
+    await ensureCollection(r.shared, "platform_orders");
     const fresh = await r.shared.find("platform_orders", { status: "created", restaurant_id: rid }, 20);
     for (const o of fresh) {
       await r.shared.update("platform_orders", { _id: o._id }, { $set: { status: "accepted", accepted_at: now() } });
