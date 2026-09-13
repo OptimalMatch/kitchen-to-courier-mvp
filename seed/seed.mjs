@@ -7,6 +7,7 @@
 //   platform_orders the shared library, one per order, a week of history plus a few live ones
 //   sales           chain-ops, the chain's own till record of every delivered order (what settlements reconcile against)
 import { fleet, ready, now } from "../lib/api.mjs";
+import { PICKUPS, delivery } from "../lib/addresses.mjs";
 
 const F = fleet();
 const ORDERS = Number(process.env.SEED_ORDERS || 1000);
@@ -63,7 +64,7 @@ async function main() {
     const collected = readyAt + 2 * 60000 + Math.floor(rnd() * 6 * 60000), delivered = collected + 8 * 60000 + Math.floor(rnd() * 10 * 60000);
     const live = i >= ORDERS - 12; // the last few are still open, for the demo to walk
     const courier = pick(couriers.filter((c) => c.hub_id === h.id));
-    const o = { _id: `o-${String(i + 1).padStart(5, "0")}`, order_id: `o-${String(i + 1).padStart(5, "0")}`, restaurant_id: r.id, hub_id: h.id, customer_id: `cust-${1 + Math.floor(rnd() * 400)}`, items, total_cents, status: live ? "created" : "delivered", created_at: iso(created), promised_at: iso(created + 40 * 60000) };
+    const o = { _id: `o-${String(i + 1).padStart(5, "0")}`, order_id: `o-${String(i + 1).padStart(5, "0")}`, restaurant_id: r.id, hub_id: h.id, customer_id: `cust-${1 + Math.floor(rnd() * 400)}`, items, total_cents, status: live ? "created" : "delivered", created_at: iso(created), promised_at: iso(created + 40 * 60000), pickup: PICKUPS[r.id], delivery: delivery(i) };
     if (!live) Object.assign(o, { accepted_at: iso(accepted), ready_at: iso(readyAt), courier_id: courier._id, collected_at: iso(collected), delivered_at: iso(delivered) });
     orders.push(o);
     // The chain's till: the same order, with the platform's fee taken off; a few deliberate mismatches to reconcile.
