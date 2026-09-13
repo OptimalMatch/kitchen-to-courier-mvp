@@ -48,6 +48,14 @@ supports for each restaurant and hub. The customer app reads it.
 replaces — on the seeded history, 2.6 minutes shorter for 4.6 points of
 on-time, which is the trade the target percentile buys.
 
+The couriers are the traffic data:
+`bin/learn-road-speeds.mjs` takes the trails in `courier_traces`, matches
+them to the road network with the platform's own router, and writes what a
+courier on a bicycle actually did on each street in the CSV Valhalla takes
+as historical traffic. It refuses to publish a segment nobody has ridden
+far enough to measure, so on a demo fleet with one phone it will usually
+print what it saw and write nothing.
+
 The courier app's basemap travels the same way the orders do:
 `bin/publish-basemap.sh dublin.pmtiles` puts the vector archive into
 `chain-platform-shared`, and every courier's node replicates it like any
