@@ -2,7 +2,7 @@
 // order document, step 1 of the flow) and tracks one to the door.
 //   step 1      /api/doc/put   the order document, status created
 //   step 2 to 5 /api/doc/get   order_id   the customer tracks the order
-import { fleet, ready, sleep, now } from "../lib/api.mjs";
+import { fleet, ready, sleep, now, promiseSeconds } from "../lib/api.mjs";
 import { PICKUPS, delivery } from "../lib/addresses.mjs";
 const F = fleet();
 const N = Number(process.env.ORDERS || 3);
@@ -17,10 +17,11 @@ for (let i = 0; i < N; i++) {
   const m = menus[r.id];
   const items = [m[i % m.length], m[(i * 7) % m.length]].map((x) => ({ item_id: x.item_id, qty: 1, price_cents: x.price_cents }));
   const id = `o-live-${Date.now().toString(36)}-${i}`;
-  const o = { _id: id, order_id: id, restaurant_id: r.id, hub_id: hid, customer_id: `cust-demo-${i + 1}`, items, total_cents: items.reduce((a, it) => a + it.qty * it.price_cents, 0), status: "created", created_at: now(), promised_at: new Date(Date.now() + 40 * 60000).toISOString(), pickup: PICKUPS[r.id], delivery: delivery(Date.now() + i) };
+  const promise = await promiseSeconds(h.eu, r.id, hid);
+  const o = { _id: id, order_id: id, restaurant_id: r.id, hub_id: hid, customer_id: `cust-demo-${i + 1}`, items, total_cents: items.reduce((a, it) => a + it.qty * it.price_cents, 0), status: "created", created_at: now(), promised_at: new Date(Date.now() + promise.seconds * 1000).toISOString(), promised_from: promise.from, pickup: PICKUPS[r.id], delivery: delivery(Date.now() + i) };
   await h.shared.put("platform_orders", o);
   placed.push(id);
-  console.log(`placed ${id} at ${r.id} for ${o.total_cents} cents`);
+  console.log(`placed ${id} at ${r.id} for ${o.total_cents} cents, promised in ${(promise.seconds / 60).toFixed(1)} min (${promise.from})`);
 }
 // Track the first one until it is delivered (or for two minutes).
 const deadline = Date.now() + 120000;
