@@ -40,6 +40,15 @@ office), user `demo`.
 | 9. Late or wrong: refund? | proposed for an agent | a slide: "20 minutes late or an item missing: refund the item; over 40 goes to a person" | |
 | 10. Delivered | | the customer app's last line | the order's whole timeline on one document |
 
+Tracking the courier, as a customer app would:
+`docker compose run --rm tools node sims/track.mjs [order id]` prints the
+order's status every 5 seconds, and once it carries a `courier_id`, that
+courier's position from `couriers` on platform-eu and how far it still has
+to go. The seeded couriers do not move; the Android courier app
+([kitchen-to-courier-android](https://github.com/OptimalMatch/kitchen-to-courier-android))
+writes its position there every 5 seconds, so a phone playing a courier
+shows a real track.
+
 Check: **Promised time kept**: `deliveries_curated` on the analytics node
 (http://127.0.0.1:17540), `late` is false for 95% of orders.
 
