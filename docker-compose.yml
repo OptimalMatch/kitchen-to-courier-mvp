@@ -23,7 +23,12 @@ services:
       BOOTSTRAP: "chain-platform-shared=hub-1:47811"
       PEERS: "chain-platform-shared=hub-1:47810"
     volumes: ["restaurant-1-data:/data"]
-    ports: ["17480:7480", "17481:7481"]
+    # 17801: restaurant-1's chain-ops sync port on the host, so a node outside
+    # the compose network — a kitchen display on a handset — can join the
+    # chain's own library the way a courier's phone joins the shared one
+    # (kitchen-to-courier-kitchen-android). The shared library it reaches
+    # through hub-1 on 17811.
+    ports: ["17480:7480", "17481:7481", "17801:47800"]
   restaurant-2:
     <<: *node
     environment:
